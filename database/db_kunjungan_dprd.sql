@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Dec 09, 2025 at 07:02 AM
+-- Generation Time: Dec 09, 2025 at 05:39 PM
 -- Server version: 10.4.25-MariaDB
 -- PHP Version: 8.1.10
 
@@ -35,6 +35,13 @@ CREATE TABLE `admin` (
   `level` enum('admin','petugas') DEFAULT 'petugas',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Dumping data for table `admin`
+--
+
+INSERT INTO `admin` (`id_admin`, `nama_pengguna`, `username`, `password`, `level`, `created_at`) VALUES
+(1, 'Super Admin', 'admin', 'admin123', 'admin', '2025-12-09 06:44:02');
 
 -- --------------------------------------------------------
 
@@ -83,6 +90,13 @@ CREATE TABLE `kunjungan` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+--
+-- Dumping data for table `kunjungan`
+--
+
+INSERT INTO `kunjungan` (`id_kunjungan`, `kode_booking`, `email_pemohon`, `no_register`, `tgl_surat_permohonan`, `tgl_kunjungan`, `waktu_kunjungan`, `nama_instansi_tamu`, `alamat_instansi`, `jumlah_peserta_rencana`, `materi_kunjungan`, `file_surat_permohonan`, `no_skk`, `tgl_skk`, `instansi_pengirim_skk`, `perihal_skk`, `file_skk`, `id_pj`, `id_ruangan`, `status_kegiatan`, `created_at`) VALUES
+(1, 'REQ-2025-0055', 'dprdtala@mail.com', NULL, '2025-12-09', '2025-12-10', '18:11:00', 'DPRD Kab.Tala', 'pelaihari', 2, 'Becari Duit', 'SURAT_1765264496.png', NULL, NULL, NULL, NULL, NULL, 1, 1, 'selesai', '2025-12-09 07:14:56');
+
 -- --------------------------------------------------------
 
 --
@@ -98,6 +112,13 @@ CREATE TABLE `penanggung_jawab` (
   `no_hp` varchar(20) DEFAULT NULL,
   `file_ttd` varchar(255) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Dumping data for table `penanggung_jawab`
+--
+
+INSERT INTO `penanggung_jawab` (`id_pj`, `nama_pj`, `nip`, `pangkat_golongan`, `jabatan`, `no_hp`, `file_ttd`) VALUES
+(1, 'Ahmad Saiduns, S.Kom.', '2210010264', NULL, 'Kasubbag Humas', '081222333444', NULL);
 
 -- --------------------------------------------------------
 
@@ -198,7 +219,7 @@ ALTER TABLE `spt_tugas`
 -- AUTO_INCREMENT for table `admin`
 --
 ALTER TABLE `admin`
-  MODIFY `id_admin` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id_admin` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `buku_tamu`
@@ -210,19 +231,19 @@ ALTER TABLE `buku_tamu`
 -- AUTO_INCREMENT for table `kunjungan`
 --
 ALTER TABLE `kunjungan`
-  MODIFY `id_kunjungan` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id_kunjungan` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `penanggung_jawab`
 --
 ALTER TABLE `penanggung_jawab`
-  MODIFY `id_pj` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id_pj` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `ruangan`
 --
 ALTER TABLE `ruangan`
-  MODIFY `id_ruangan` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `id_ruangan` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
 -- AUTO_INCREMENT for table `spt_tugas`
