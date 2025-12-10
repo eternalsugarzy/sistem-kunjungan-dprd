@@ -3,10 +3,10 @@
 // Hitung jumlah data pending langsung di sini agar muncul di semua halaman
 // Kita gunakan include_once untuk memastikan koneksi ada, meski biasanya header sudah membawanya.
 if (isset($koneksi)) {
-    $q_notif = mysqli_query($koneksi, "SELECT * FROM kunjungan WHERE status_kegiatan='pending'");
-    $jml_notif = mysqli_num_rows($q_notif);
+  $q_notif = mysqli_query($koneksi, "SELECT * FROM kunjungan WHERE status_kegiatan='pending'");
+  $jml_notif = mysqli_num_rows($q_notif);
 } else {
-    $jml_notif = 0;
+  $jml_notif = 0;
 }
 ?>
 
@@ -14,12 +14,13 @@ if (isset($koneksi)) {
   <div class="navbar-wrapper">
     <div class="m-header">
       <a href="dashboard.php" class="b-brand text-primary">
-        <img src="../assets/images/logo-dark.svg" alt="" class="logo logo-lg" style="height: 30px;" />
+       
+         <img src="../assets/images/logo.png" class="logo-img" alt="Logo" style="height: 95px; padding-top: 10px; padding-left: 70px;" />
       </a>
     </div>
     <div class="navbar-content">
       <ul class="pc-navbar">
-        
+
         <li class="pc-item pc-caption">
           <label>Home</label>
           <i class="ti ti-dashboard"></i>
@@ -39,11 +40,11 @@ if (isset($koneksi)) {
           <a href="verifikasi_kunjungan.php" class="pc-link">
             <span class="pc-micon"><i class="ti ti-file-check"></i></span>
             <span class="pc-mtext">Verifikasi Masuk</span>
-            
-            <?php if($jml_notif > 0): ?>
-                <span class="pc-badge badge bg-danger rounded-pill ms-2"><?= $jml_notif; ?></span>
+
+            <?php if ($jml_notif > 0): ?>
+              <span class="pc-badge badge bg-danger rounded-pill ms-2"><?= $jml_notif; ?></span>
             <?php endif; ?>
-            
+
           </a>
         </li>
         <li class="pc-item <?= ($page == 'data_kunjungan') ? 'active' : '' ?>">
@@ -52,7 +53,7 @@ if (isset($koneksi)) {
             <span class="pc-mtext">Data Kunjungan</span>
           </a>
         </li>
-         <li class="pc-item <?= ($page == 'buku_tamu') ? 'active' : '' ?>">
+        <li class="pc-item <?= ($page == 'buku_tamu') ? 'active' : '' ?>">
           <a href="buku_tamu.php" class="pc-link">
             <span class="pc-micon"><i class="ti ti-book"></i></span>
             <span class="pc-mtext">Buku Tamu</span>
@@ -72,19 +73,21 @@ if (isset($koneksi)) {
           <ul class="pc-submenu">
             <li class="pc-item"><a class="pc-link" href="master_ruangan.php">Data Ruangan</a></li>
             <li class="pc-item"><a class="pc-link" href="master_pj.php">Penanggung Jawab</a></li>
-            <li class="pc-item"><a class="pc-link" href="manajemen_user.php">Manajemen Admin</a></li>
+            <?php if ($_SESSION['level'] == 'admin'): ?>
+              <li class="pc-item"><a class="pc-link" href="manajemen_user.php">Manajemen Admin</a></li>
+            <?php endif; ?>
           </ul>
         </li>
 
         <li class="pc-item pc-caption">
-            <label>Output</label>
-            <i class="ti ti-printer"></i>
+          <label>Output</label>
+          <i class="ti ti-printer"></i>
         </li>
         <li class="pc-item <?= ($page == 'laporan') ? 'active' : '' ?>">
-            <a href="laporan.php" class="pc-link">
-                <span class="pc-micon"><i class="ti ti-file-analytics"></i></span>
-                <span class="pc-mtext">Cetak Laporan</span>
-            </a>
+          <a href="laporan.php" class="pc-link">
+            <span class="pc-micon"><i class="ti ti-file-analytics"></i></span>
+            <span class="pc-mtext">Cetak Laporan</span>
+          </a>
         </li>
 
       </ul>
@@ -107,12 +110,13 @@ if (isset($koneksi)) {
         </li>
       </ul>
     </div>
-    
+
     <div class="ms-auto">
       <ul class="list-unstyled">
         <li class="dropdown pc-h-item header-user-profile">
-          <a class="pc-head-link head-link-primary dropdown-toggle arrow-none me-0" data-bs-toggle="dropdown" href="#" role="button">
-            <img src="../assets/images/user/avatar-2.jpg" alt="user-image" class="user-avtar" />
+          <a class="pc-head-link head-link-primary dropdown-toggle arrow-none me-0" data-bs-toggle="dropdown" href="#"
+            role="button">
+          
             <span><i class="ti ti-settings"></i></span>
           </a>
           <div class="dropdown-menu dropdown-user-profile dropdown-menu-end pc-h-dropdown">

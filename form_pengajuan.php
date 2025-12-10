@@ -78,7 +78,7 @@ if (isset($_POST['kirim_pengajuan'])) {
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     
-    <link rel="icon" href="assets/images/favicon.svg" type="image/x-icon" />
+    <link rel="icon" href="assets/images/logo.png" type="image/x-icon" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" />
     <link rel="stylesheet" href="assets/fonts/tabler-icons.min.css" />
     <link rel="stylesheet" href="assets/css/style.css" id="main-style-link" />
@@ -90,7 +90,7 @@ if (isset($_POST['kirim_pengajuan'])) {
     <nav class="navbar navbar-expand-md navbar-light bg-white shadow-sm">
       <div class="container">
         <a class="navbar-brand text-dark fw-bold" href="index.php">
-          <img src="assets/images/logo-dark.svg" alt="logo" style="height:30px" class="me-2" />
+          <img src="assets/images/logo.png" alt="logo" style="height:30px" class="me-2" />
           SIM-KUNJUNGAN
         </a>
         <a href="index.php" class="btn btn-sm btn-outline-secondary">Kembali ke Beranda</a>
