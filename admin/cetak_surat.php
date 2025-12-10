@@ -12,32 +12,97 @@ $d = mysqli_fetch_array($q);
 
 <!DOCTYPE html>
 <html>
+
 <head>
-    <title>Surat Balasan - <?= $d['nama_instansi_tamu']; ?></title>
+    <title>Surat Balasan -
+        <?= $d['nama_instansi_tamu']; ?>
+    </title>
     <style>
         /* SETTING HALAMAN */
-        body { font-family: 'Times New Roman', Times, serif; font-size: 12pt; margin: 40px 60px; line-height: 1.5; }
-        
-        /* STYLE KOP SURAT KHUSUS */
-        .kop-table { width: 100%; border-bottom: 4px double black; margin-bottom: 30px; padding-bottom: 10px; }
-        .kop-table td { text-align: center; vertical-align: middle; }
-        .logo-img { width: 90px; height: auto; }
-        
-        .text-pemkot { margin: 0; font-size: 14pt; font-weight: bold; text-transform: uppercase; }
-        .text-dprd { margin: 0; font-size: 18pt; font-weight: bold; text-transform: uppercase; }
-        .text-alamat { margin: 0; font-size: 10pt; font-weight: normal; }
+        body {
+            font-family: 'Times New Roman', Times, serif;
+            font-size: 12pt;
+            margin: 40px 60px;
+            line-height: 1.5;
+        }
 
-        .no-print { display: none; }
-        @media print { .no-print { display: none; } }
-        
+        /* STYLE KOP SURAT KHUSUS */
+        .kop-table {
+            width: 100%;
+            border-bottom: 4px double black;
+            margin-bottom: 30px;
+            padding-bottom: 10px;
+        }
+
+        .kop-table td {
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        .logo-img {
+            width: 90px;
+            height: auto;
+        }
+
+        .text-pemkot {
+            margin: 0;
+            font-size: 14pt;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .text-dprd {
+            margin: 0;
+            font-size: 18pt;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .text-alamat {
+            margin: 0;
+            font-size: 10pt;
+            font-weight: normal;
+        }
+
+        .no-print {
+            display: none;
+        }
+
+        @media print {
+            .no-print {
+                display: none;
+            }
+        }
+
         /* STYLE ISI SURAT */
-        .info-surat { width: 100%; margin-bottom: 30px; }
-        .info-surat td { vertical-align: top; }
-        .isi { text-align: justify; margin-bottom: 20px; }
-        .detail-acara { margin-left: 40px; margin-bottom: 20px; }
-        .ttd { float: right; width: 250px; text-align: center; margin-top: 50px; }
+        .info-surat {
+            width: 100%;
+            margin-bottom: 30px;
+        }
+
+        .info-surat td {
+            vertical-align: top;
+        }
+
+        .isi {
+            text-align: justify;
+            margin-bottom: 20px;
+        }
+
+        .detail-acara {
+            margin-left: 40px;
+            margin-bottom: 20px;
+        }
+
+        .ttd {
+            float: right;
+            width: 250px;
+            text-align: center;
+            margin-top: 50px;
+        }
     </style>
 </head>
+
 <body onload="window.print()">
 
     <div class="no-print"><button onclick="window.close()">Tutup</button></div>
@@ -51,19 +116,25 @@ $d = mysqli_fetch_array($q);
                 <td align="center">
                     <h3 class="text-pemkot">PEMERINTAH KOTA BANJARMASIN</h3>
                     <h1 class="text-dprd">SEKRETARIAT DEWAN PERWAKILAN RAKYAT DAERAH</h1>
-                    <p class="text-alamat">Jl. Lambung Mangkurat No. 2 Telp. (0511) 3352467 – 3366379 Banjarmasin 70111</p>
+                    <p class="text-alamat">Jl. Lambung Mangkurat No. 2 Telp. (0511) 3352467 – 3366379 Banjarmasin 70111
+                    </p>
                     <p class="text-alamat">Website : dprd.banjarmasinkota.go.id Email : dprdbjm@gmail.com</p>
                 </td>
             </tr>
         </table>
     </div>
 
-    <p style="text-align: right;">Banjarmasin, <?= date('d F Y'); ?></p>
-    
+    <p style="text-align: right;">Banjarmasin,
+        <?= date('d F Y'); ?>
+    </p>
+
     <table class="info-surat">
         <tr>
             <td width="15%">Nomor</td>
-            <td width="55%">: 005 / <?= $d['id_kunjungan']; ?> / DPRD-BJM</td>
+            <td width="55%">: 005 /
+                <?= $d['id_kunjungan']; ?> /
+                DPRD-BJM
+            </td>
         </tr>
         <tr>
             <td>Lampiran</td>
@@ -77,35 +148,51 @@ $d = mysqli_fetch_array($q);
 
     <div style="margin-bottom: 30px;">
         Kepada Yth,<br>
-        <b>Pimpinan <?= $d['nama_instansi_tamu']; ?></b><br>
+        <b>Pimpinan
+            <?= $d['nama_instansi_tamu']; ?></b><br>
         di - <br>
         &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Tempat
     </div>
 
     <div class="isi">
-                <p>Dengan hormat,</p>
-                <p>Menindaklanjuti surat Saudara perihal permohonan Kunjungan Kerja ke DPRD Kota Banjarmasin dengan materi <b>"<?= $d['materi_kunjungan']; ?>"</b>, maka bersama ini kami sampaikan bahwa kami <b>BERSEDIA MENERIMA</b> kunjungan tersebut yang akan dilaksanakan pada:</p>
-        
+        <p>Dengan hormat,</p>
+        <p>Menindaklanjuti surat Saudara perihal permohonan Kunjungan Kerja ke DPRD Kota Banjarmasin dengan materi
+            <b>"<?= $d['materi_kunjungan']; ?>"</b>,
+            maka bersama ini kami sampaikan bahwa kami <b>BERSEDIA MENERIMA</b> kunjungan tersebut yang akan
+            dilaksanakan pada:
+        </p>
+
         <table class="detail-acara">
             <tr>
                 <td width="120px">Hari / Tanggal</td>
-                <td>: <b><?= date('l, d F Y', strtotime($d['tgl_kunjungan'])); ?></b></td>
+                <td>:
+                    <b><?= date('l, d F Y', strtotime($d['tgl_kunjungan'])); ?></b>
+                </td>
             </tr>
-             <tr>
+            <tr>
                 <td>Pukul</td>
-                <td>: <?= $d['waktu_kunjungan']; ?> WITA - Selesai</td>
+                <td>:
+                    <?= $d['waktu_kunjungan']; ?>
+                    WITA - Selesai
+                </td>
             </tr>
             <tr>
                 <td>Tempat</td>
-                <td>: <?= $d['nama_ruangan'] ?? 'Gedung DPRD Kota Banjarmasin'; ?></td>
+                <td>:
+                    <?= $d['nama_ruangan'] ?? 'Gedung DPRD Kota Banjarmasin'; ?>
+                </td>
             </tr>
             <tr>
                 <td>Jumlah Peserta</td>
-                <td>: <?= $d['jumlah_peserta_rencana']; ?> Orang</td>
+                <td>:
+                    <?= $d['jumlah_peserta_rencana']; ?>
+                    Orang
+                </td>
             </tr>
         </table>
 
-        <p>Demikian surat balasan ini kami sampaikan agar dapat dipergunakan sebagaimana mestinya. Atas perhatian dan kerjasamanya diucapkan terima kasih.</p>
+        <p>Demikian surat balasan ini kami sampaikan agar dapat dipergunakan sebagaimana mestinya. Atas perhatian dan
+            kerjasamanya diucapkan terima kasih.</p>
     </div>
 
     <div class="ttd">
@@ -114,4 +201,5 @@ $d = mysqli_fetch_array($q);
         <p><b>_______________________</b><br>NIP. ..............................</p>
     </div>
 </body>
-</html> 
+
+</html>
