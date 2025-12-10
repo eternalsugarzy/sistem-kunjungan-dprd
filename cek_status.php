@@ -113,6 +113,9 @@ if (isset($_POST['btn_cek']) || isset($_GET['kode'])) {
                             <?php elseif($data['status_kegiatan'] == 'dijadwalkan' || $data['status_kegiatan'] == 'selesai'): ?>
                                 <i class="ti ti-calendar-check text-success" style="font-size: 4rem;"></i>
                                 <h3 class="mt-2">Jadwal Terkonfirmasi!</h3>
+                                      <a href="cetak_tiket.php?kode=<?= $data['kode_booking']; ?>" target="_blank" class="btn btn-outline-dark mt-2 btn-sm">
+                                    <i class="ti ti-printer"></i> Cetak Tiket
+                                </a>    
                                 <p>Silakan datang sesuai waktu yang ditentukan.</p>
 
                             <?php else: ?>

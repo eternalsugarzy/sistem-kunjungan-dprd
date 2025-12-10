@@ -8,7 +8,6 @@ include 'template/sidebar.php';
 
 // ---------------------------------------------------------
 // LOGIC PHP (HAPUS & SELESAI)
-// Ditaruh di sini karena koneksi database sudah tersedia dari header.php
 // ---------------------------------------------------------
 
 // A. HAPUS DATA
@@ -166,12 +165,27 @@ if (isset($_GET['aksi']) && $_GET['aksi'] == 'selesai') {
                             <strong>Ruangan:</strong> <?= $d['nama_ruangan'] ?? '-'; ?><br>
                             <strong>Penanggung Jawab:</strong> <?= $d['nama_pj'] ?? '-'; ?>
                         </div>
+                        
                         <div class="mt-3">
                             <strong>Lampiran Surat:</strong><br>
                             <a href="../uploads/<?= $d['file_surat_permohonan']; ?>" target="_blank" class="btn btn-outline-primary btn-sm mt-2">
                                 <i class="ti ti-download"></i> Lihat Surat Permohonan
                             </a>
                         </div>
+
+                        <?php if($d['status_kegiatan'] == 'dijadwalkan' || $d['status_kegiatan'] == 'selesai'): ?>
+                        <hr>
+                        <h6 class="fw-bold mt-3"><i class="ti ti-printer me-2"></i>Cetak Dokumen Administrasi:</h6>
+                        <div class="d-flex gap-2">
+                            <a href="cetak_disposisi.php?id=<?= $d['id_kunjungan']; ?>" target="_blank" class="btn btn-warning btn-sm">
+                                <i class="ti ti-file-description me-1"></i> Lembar Disposisi
+                            </a>
+                            <a href="cetak_surat.php?id=<?= $d['id_kunjungan']; ?>" target="_blank" class="btn btn-primary btn-sm">
+                                <i class="ti ti-mail me-1"></i> Surat Balasan Resmi
+                            </a>
+                        </div>
+                        <?php endif; ?>
+
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
