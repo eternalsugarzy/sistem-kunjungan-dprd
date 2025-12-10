@@ -1,0 +1,4 @@
+composer.json
+.php-cs-fixer.dist.php
+vendor/
+.env
