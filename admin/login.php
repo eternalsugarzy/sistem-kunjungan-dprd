@@ -13,10 +13,8 @@ if (isset($_POST['btn_login'])) {
     if (mysqli_num_rows($cek) > 0) {
         $data = mysqli_fetch_assoc($cek);
         
-        // Cek Password (Sementara plain text sesuai request awal)
-        // Nanti jika ingin lebih aman bisa pakai password_verify()
+        // Cek Password
         if ($password == $data['password']) {
-            // Set Session
             $_SESSION['status'] = "login";
             $_SESSION['id_admin'] = $data['id_admin'];
             $_SESSION['nama'] = $data['nama_pengguna'];
@@ -35,75 +33,113 @@ if (isset($_POST['btn_login'])) {
 <!doctype html>
 <html lang="en">
   <head>
-    <title>Login Admin | Sistem Kunjungan DPRD</title>
+    <title>Login Administrator | Sistem Kunjungan DPRD</title>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     
-    <link rel="icon" href="../assets/images/favicon.svg" type="image/x-icon" />
+    <link rel="icon" href="../assets/images/logo.png" type="image/x-icon" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" id="main-font-link" />
     <link rel="stylesheet" href="../assets/css/style.css" id="main-style-link" />
     <link rel="stylesheet" href="../assets/css/style-preset.css" />
+    
+    <style>
+        body {
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); /* Gradasi Biru Muda */
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .auth-wrapper {
+            width: 100%;
+            max-width: 450px;
+            padding: 20px;
+        }
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1); /* Bayangan Lembut */
+        }
+        .logo-login {
+            width: 80px;
+            height: auto;
+            margin-bottom: 10px;
+        }
+        .btn-primary {
+            background-color: #1e88e5;
+            border-color: #1e88e5;
+            padding: 10px;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+        .btn-primary:hover {
+            background-color: #1565c0;
+        }
+        .form-floating > label {
+            padding-left: 15px;
+        }
+        .form-control {
+            border-radius: 10px;
+            padding-left: 15px;
+        }
+    </style>
   </head>
+
   <body>
     <div class="loader-bg">
       <div class="loader-track">
         <div class="loader-fill"></div>
       </div>
     </div>
-    <div class="auth-main">
-      <div class="auth-wrapper v3">
-        <div class="auth-form">
-          <div class="card my-5">
-            <div class="card-body">
-              
-              <a href="#" class="d-flex justify-content-center">
-                <h3 class="text-secondary"><b>ADMIN PANEL</b></h3>
-              </a>
 
-              <div class="row">
-                <div class="d-flex justify-content-center">
-                  <div class="auth-header">
-                    <h2 class="text-secondary mt-5"><b>Sistem Kunjungan</b></h2>
-                    <p class="f-16 mt-2">Masukan username dan password untuk masuk</p>
-                  </div>
+    <div class="auth-wrapper">
+        <div class="card">
+            <div class="card-body text-center p-4 p-sm-5">
+                
+                <div class="mb-4">
+                    <img src="../assets/images/logo.png" class="logo-login" alt="Logo Pemkot">
+                    <h4 class="mt-3 fw-bold text-dark">ADMINISTRATOR PANEL</h4>
+                    <p class="text-muted mb-0">Sistem Informasi Kunjungan DPRD</p>
                 </div>
-              </div>
 
-              <form method="POST" action="">
-                  
-                  <h5 class="my-4 d-flex justify-content-center">Login Administrator</h5>
-                  
-                  <div class="form-floating mb-3">
-                    <input type="text" name="username" class="form-control" id="floatingInput" placeholder="Username" required />
-                    <label for="floatingInput">Username</label>
-                  </div>
+                <form method="POST" action="">
+                    
+                    <div class="text-start mb-3">
+                        <div class="form-floating mb-3">
+                            <input type="text" name="username" class="form-control" id="floatingInput" placeholder="Username" required />
+                            <label for="floatingInput">Username</label>
+                        </div>
 
-                  <div class="form-floating mb-3">
-                    <input type="password" name="password" class="form-control" id="floatingInput1" placeholder="Password" required />
-                    <label for="floatingInput1">Password</label>
-                  </div>
+                        <div class="form-floating mb-3">
+                            <input type="password" name="password" class="form-control" id="floatingInput1" placeholder="Password" required />
+                            <label for="floatingInput1">Password</label>
+                        </div>
+                    </div>
 
-                  <div class="d-flex mt-1 justify-content-between">
-                    <div class="form-check">
-                      </div>
-                  </div>
+                    <div class="d-grid mt-4">
+                        <button type="submit" name="btn_login" class="btn btn-primary btn-lg shadow-sm">
+                            MASUK SISTEM
+                        </button>
+                    </div>
 
-                  <div class="d-grid mt-4">
-                    <button type="submit" name="btn_login" class="btn btn-secondary">Sign In</button>
-                  </div>
-
-              </form>
-              <hr />
-              <div class="d-flex justify-content-center">
-                  <small><a href="../index.php">Kembali ke Halaman Depan</a></small>
-              </div>
+                </form>
+                <hr class="my-4" />
+                
+                <div>
+                    <a href="../index.php" class="text-decoration-none text-muted fw-bold">
+                        <i class="feather icon-arrow-left me-1"></i> Kembali ke Halaman Depan
+                    </a>
+                </div>
 
             </div>
-          </div>
         </div>
-      </div>
+        
+        <div class="text-center mt-3 text-muted small">
+            &copy; 2025 Sekretariat DPRD Kota Banjarmasin
+        </div>
     </div>
+
     <script src="../assets/js/plugins/popper.min.js"></script>
     <script src="../assets/js/plugins/simplebar.min.js"></script>
     <script src="../assets/js/plugins/bootstrap.min.js"></script>
@@ -112,4 +148,4 @@ if (isset($_POST['btn_login'])) {
     <script src="../assets/js/theme.js"></script>
     <script src="../assets/js/plugins/feather.min.js"></script>
   </body>
-  </html>
+</html>
