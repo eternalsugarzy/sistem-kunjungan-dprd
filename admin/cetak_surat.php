@@ -91,7 +91,7 @@ $d = mysqli_fetch_array($q);
                 <td width="120px">Hari / Tanggal</td>
                 <td>: <b><?= date('l, d F Y', strtotime($d['tgl_kunjungan'])); ?></b></td>
             </tr>
-            <tr>
+             <tr>
                 <td>Pukul</td>
                 <td>: <?= $d['waktu_kunjungan']; ?> WITA - Selesai</td>
             </tr>
