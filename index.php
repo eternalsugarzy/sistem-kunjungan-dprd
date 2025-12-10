@@ -5,7 +5,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui" />
     
-    <link rel="icon" href="assets/images/favicon.svg" type="image/x-icon" />
+    <link rel="icon" href="assets/images/logo.png" type="image/x-icon" />
     
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" />
     
@@ -29,7 +29,7 @@
     <nav class="navbar navbar-expand-md navbar-light default fixed-top">
       <div class="container">
         <a class="navbar-brand text-dark" href="#">
-          <img src="assets/images/logo-dark.svg" alt="logo" class="img-fluid" style="height:30px" /> 
+          <img src="assets/images/logo.png" alt="logo" class="img-fluid" style="height:70px" /> 
           <span class="fw-bold ms-2">SIM-KUNJUNGAN</span>
         </a>
         

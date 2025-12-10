@@ -4,7 +4,7 @@
       <div class="footer-wrapper container-fluid">
         <div class="row">
           <div class="col-sm-6 my-1">
-            <p class="m-0">Sistem Kunjungan DPRD &#9829; PKL Project</p>
+            <p class="m-0">Sistem Kunjungan DPRD </p>
           </div>
         </div>
       </div>
