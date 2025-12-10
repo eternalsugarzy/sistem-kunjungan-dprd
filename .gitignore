@@ -1,0 +1,9 @@
+# PHP CS Fixer & Composer (LOCAL ONLY)
+composer.json
+composer.lock
+.php-cs-fixer.dist.php
+.php-cs-fixer.cache
+
+admin/composer.json
+admin/.php-cs-fixer.cache
+vendor/
