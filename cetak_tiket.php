@@ -23,7 +23,7 @@ $d = mysqli_fetch_array($query);
     <div class="tiket">
         <div class="header">
             <h2>BUKTI REGISTRASI KUNJUNGAN</h2>
-            <p>DPRD PROVINSI KALIMANTAN SELATAN</p>
+            <p>DPRD KOTA BANJARMASIN</p>
         </div>
         
         <div class="kode"><?= $d['kode_booking']; ?></div>
