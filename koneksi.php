@@ -2,7 +2,7 @@
 $host = "localhost";
 $user = "root";
 $pass = "";
-$db   = "db_kunjungan_dprd"; 
+$db   = "db_smart_guest"; 
 
 $koneksi = mysqli_connect($host, $user, $pass, $db);
 
