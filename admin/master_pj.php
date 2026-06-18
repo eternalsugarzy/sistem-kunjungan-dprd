@@ -26,6 +26,7 @@ if (!file_exists($target_dir)) {
 if (isset($_POST['tambah'])) {
     $nama    = mysqli_real_escape_string($koneksi, $_POST['nama_pj']);
     $nip     = mysqli_real_escape_string($koneksi, $_POST['nip']);
+    $pangkat = mysqli_real_escape_string($koneksi, $_POST['pangkat_golongan']); // Tangkap input pangkat
     $jabatan = mysqli_real_escape_string($koneksi, $_POST['jabatan']);
     $hp      = mysqli_real_escape_string($koneksi, $_POST['no_hp']);
     $nama_file_ttd = "";
@@ -50,7 +51,8 @@ if (isset($_POST['tambah'])) {
         move_uploaded_file($file_tmp, $target_dir . $nama_file_ttd);
     }
     
-    $query = "INSERT INTO penanggung_jawab (nama_pj, nip, jabatan, no_hp, file_ttd) VALUES ('$nama', '$nip', '$jabatan', '$hp', '$nama_file_ttd')";
+    // Insert beserta Pangkat Golongan
+    $query = "INSERT INTO penanggung_jawab (nama_pj, nip, pangkat_golongan, jabatan, no_hp, file_ttd) VALUES ('$nama', '$nip', '$pangkat', '$jabatan', '$hp', '$nama_file_ttd')";
     if (mysqli_query($koneksi, $query)) {
         echo "<script>alert('PJ Berhasil Ditambah!'); window.location='master_pj.php';</script>";
     }
@@ -61,6 +63,7 @@ if (isset($_POST['edit'])) {
     $id      = mysqli_real_escape_string($koneksi, $_POST['id_pj']);
     $nama    = mysqli_real_escape_string($koneksi, $_POST['nama_pj']);
     $nip     = mysqli_real_escape_string($koneksi, $_POST['nip']);
+    $pangkat = mysqli_real_escape_string($koneksi, $_POST['pangkat_golongan']); // Tangkap update pangkat
     $jabatan = mysqli_real_escape_string($koneksi, $_POST['jabatan']);
     $hp      = mysqli_real_escape_string($koneksi, $_POST['no_hp']);
     
@@ -84,10 +87,11 @@ if (isset($_POST['edit'])) {
         move_uploaded_file($file_tmp, "../uploads/ttd/" . $nama_file_ttd);
     }
     
-    // Jalankan Query Update
+    // Jalankan Query Update beserta Pangkat Golongan
     $query = "UPDATE penanggung_jawab SET 
                 nama_pj='$nama', 
                 nip='$nip', 
+                pangkat_golongan='$pangkat',
                 jabatan='$jabatan', 
                 no_hp='$hp', 
                 file_ttd='$nama_file_ttd' 
@@ -136,10 +140,10 @@ if (isset($_GET['aksi']) && $_GET['aksi'] == 'hapus') {
 
 <div class="row">
   <div class="col-sm-12">
-    <div class="card">
-      <div class="card-header d-flex justify-content-between align-items-center">
-        <h5>Daftar Pejabat / Penerima Tamu</h5>
-        <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalTambah">
+    <div class="card shadow-sm border-dark">
+      <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0 text-white">Daftar Pejabat / Penerima Tamu</h5>
+        <button class="btn btn-light text-dark btn-sm" data-bs-toggle="modal" data-bs-target="#modalTambah">
             <i class="ti ti-plus me-1"></i> Tambah PJ
         </button>
       </div>
@@ -148,43 +152,45 @@ if (isset($_GET['aksi']) && $_GET['aksi'] == 'hapus') {
           <table class="table table-hover table-bordered align-middle">
             <thead class="table-dark">
               <tr>
-                <th width="5%">No</th>
-                <th>Nama Lengkap</th>
-                <th>NIP</th>
-                <th>Jabatan</th>
-                <th>No HP</th>
-                <th width="12%">Spesimen TTD</th>
-                <th class="text-center" width="12%">Aksi</th>
+                <th width="5%" class="text-center">No</th>
+                <th width="22%">Nama & Gelar</th>
+                <th width="17%">Jabatan</th>
+                <th width="15%">Pangkat / Gol.</th>
+                <th width="13%">NIP</th>
+                <th width="10%">No HP</th>
+                <th width="10%" class="text-center">TTE</th>
+                <th class="text-center" width="8%">Aksi</th>
               </tr>
             </thead>
             <tbody>
               <?php
               $no = 1;
               $query = mysqli_query($koneksi, "SELECT * FROM penanggung_jawab ORDER BY nama_pj ASC");
-              while ($d = mysqli_fetch_array($query)) {
+              if (mysqli_num_rows($query) > 0) {
+                  while ($d = mysqli_fetch_array($query)) {
               ?>
               <tr>
-                <td><?= $no++; ?></td>
+                <td class="text-center"><?= $no++; ?></td>
                 <td><b><?= htmlspecialchars($d['nama_pj']); ?></b></td>
-                <td><?= htmlspecialchars($d['nip'] ?: '-'); ?></td>
                 <td><?= htmlspecialchars($d['jabatan']); ?></td>
+                <td><?= htmlspecialchars($d['pangkat_golongan'] ?? '-'); ?></td>
+                <td><span class="font-monospace text-muted"><?= htmlspecialchars($d['nip'] ?: '-'); ?></span></td>
                 <td><?= htmlspecialchars($d['no_hp'] ?: '-'); ?></td>
                 <td class="text-center">
     <?php if(!empty($d['file_ttd'])): ?>
         <?php 
         // Cek apakah data yang tersimpan adalah teks enkripsi Base64 dari Canvas
         if (strpos($d['file_ttd'], 'data:image') !== false || substr($d['file_ttd'], 0, 4) === 'data') {
-            // Jika Base64, render langsung tanpa membaca rute path folder
             echo '<img src="' . $d['file_ttd'] . '" alt="TTD Canvas" style="height: 45px; max-width: 100px; object-fit: contain; border: 1px dashed #ccc; padding: 2px; background: #fff;">';
         } else {
-            // Jika file gambar biasa hasil upload file, gunakan fallback path folder
+            // Jika file gambar biasa hasil upload file
             echo '<img src="uploads/ttd/' . $d['file_ttd'] . '" onerror="this.src=\'../uploads/ttd/' . $d['file_ttd'] . '\';" alt="TTD File" style="height: 45px; max-width: 100px; object-fit: contain; border: 1px dashed #ccc; padding: 2px; background: #fff;">';
         }
         ?>
     <?php else: ?>
-        <span class="text-muted font-italic" style="font-size: 11px;">Belum ada</span>
+        <span class="badge bg-light text-muted border">Belum ada</span>
     <?php endif; ?>
-</td>
+                </td>
                 <td class="text-center">
                     <div class="d-flex gap-1 justify-content-center">
                         <button class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#modalEdit<?= $d['id_pj']; ?>">
@@ -200,28 +206,38 @@ if (isset($_GET['aksi']) && $_GET['aksi'] == 'hapus') {
               <div class="modal fade" id="modalEdit<?= $d['id_pj']; ?>" tabindex="-1" aria-hidden="true">
                 <div class="modal-dialog modal-dialog-centered">
                   <div class="modal-content">
-                    <div class="modal-header">
-                      <h5 class="modal-titlefw-bold">Edit Penanggung Jawab</h5>
-                      <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <div class="modal-header bg-dark text-white">
+                      <h5 class="modal-title fw-bold text-white">Edit Penanggung Jawab</h5>
+                      <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                     </div>
                     <form method="POST" enctype="multipart/form-data" class="form-edit-pj">
                         <div class="modal-body">
                             <input type="hidden" name="id_pj" value="<?= $d['id_pj']; ?>">
+                            
                             <div class="mb-2">
-                                <label class="form-label mb-1">Nama Lengkap *</label>
-                                <input type="text" name="nama_pj" class="form-control form-control-sm" value="<?= htmlspecialchars($d['nama_pj']); ?>" required>
+                                <label class="form-label mb-1 fw-bold">Nama Lengkap & Gelar *</label>
+                                <input type="text" name="nama_pj" class="form-control form-control-sm border-dark" value="<?= htmlspecialchars($d['nama_pj']); ?>" required>
                             </div>
+
                             <div class="mb-2">
-                                <label class="form-label mb-1">NIP</label>
-                                <input type="text" name="nip" class="form-control form-control-sm" value="<?= htmlspecialchars($d['nip']); ?>">
+                                <label class="form-label mb-1 fw-bold">Jabatan Struktural *</label>
+                                <input type="text" name="jabatan" class="form-control form-control-sm border-dark" value="<?= htmlspecialchars($d['jabatan']); ?>" required>
                             </div>
-                            <div class="mb-2">
-                                <label class="form-label mb-1">Jabatan *</label>
-                                <input type="text" name="jabatan" class="form-control form-control-sm" value="<?= htmlspecialchars($d['jabatan']); ?>" required>
+
+                            <div class="row mb-2">
+                                <div class="col-6">
+                                    <label class="form-label mb-1 fw-bold">Pangkat / Golongan *</label>
+                                    <input type="text" name="pangkat_golongan" class="form-control form-control-sm border-dark" placeholder="Cth: IV/c" value="<?= htmlspecialchars($d['pangkat_golongan'] ?? ''); ?>" required>
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label mb-1 fw-bold">NIP</label>
+                                    <input type="text" name="nip" class="form-control form-control-sm border-dark" value="<?= htmlspecialchars($d['nip']); ?>">
+                                </div>
                             </div>
+                            
                             <div class="mb-3">
-                                <label class="form-label mb-1">No HP</label>
-                                <input type="text" name="no_hp" class="form-control form-control-sm" value="<?= htmlspecialchars($d['no_hp']); ?>">
+                                <label class="form-label mb-1 fw-bold">No HP</label>
+                                <input type="text" name="no_hp" class="form-control form-control-sm border-dark" value="<?= htmlspecialchars($d['no_hp']); ?>">
                             </div>
 
                             <div class="mb-2">
@@ -234,7 +250,7 @@ if (isset($_GET['aksi']) && $_GET['aksi'] == 'hapus') {
                                         <button type="button" class="nav-link py-1" data-bs-toggle="tab" data-bs-target="#upload-panel-edit<?= $d['id_pj']; ?>">[↑] Upload</button>
                                     </li>
                                 </ul>
-                                <div class="tab-content border rounded bg-white p-2" style="min-height: 125px;">
+                                <div class="tab-content border border-dark rounded bg-white p-2" style="min-height: 125px;">
                                     <div class="tab-pane fade show active text-center" id="draw-panel-edit<?= $d['id_pj']; ?>" role="tabpanel">
                                         <canvas class="signature-pad-edit border border-secondary rounded bg-light" style="width: 100%; height: 95px; cursor: crosshair;"></canvas>
                                         <button type="button" class="btn btn-sm btn-light border text-danger py-0 px-2 mt-1 clear-btn-edit" style="font-size:10px;">[X] Hapus</button>
@@ -248,15 +264,20 @@ if (isset($_GET['aksi']) && $_GET['aksi'] == 'hapus') {
                             </div>
 
                         </div>
-                        <div class="modal-footer">
+                        <div class="modal-footer bg-light">
                             <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
-                            <button type="submit" name="edit" class="btn btn-primary btn-sm">Simpan Perubahan</button>
+                            <button type="submit" name="edit" class="btn btn-dark btn-sm">Simpan Perubahan</button>
                         </div>
                     </form>
                   </div>
                 </div>
               </div>
-              <?php } ?>
+              <?php 
+                  }
+              } else {
+                  echo '<tr><td colspan="8" class="text-center text-muted py-3">Tidak ada data penanggung jawab.</td></tr>';
+              }
+              ?>
             </tbody>
           </table>
         </div>
@@ -268,27 +289,37 @@ if (isset($_GET['aksi']) && $_GET['aksi'] == 'hapus') {
 <div class="modal fade" id="modalTambah" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title fw-bold">Tambah PJ Baru</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      <div class="modal-header bg-dark text-white">
+        <h5 class="modal-title fw-bold text-white">Tambah PJ Baru</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <form method="POST" enctype="multipart/form-data" id="formTambahPJ">
           <div class="modal-body">
+              
               <div class="mb-2">
-                  <label class="form-label mb-1">Nama Lengkap *</label>
-                  <input type="text" name="nama_pj" class="form-control form-control-sm" placeholder="Contoh: Budi Santoso, S.H." required>
+                  <label class="form-label mb-1 fw-bold">Nama Lengkap & Gelar *</label>
+                  <input type="text" name="nama_pj" class="form-control form-control-sm border-dark" placeholder="Contoh: Iwan Fitriady, S.H., M.H." required>
               </div>
+
               <div class="mb-2">
-                  <label class="form-label mb-1">NIP</label>
-                  <input type="number" name="nip" class="form-control form-control-sm" placeholder="198...">
+                  <label class="form-label mb-1 fw-bold">Jabatan Struktural *</label>
+                  <input type="text" name="jabatan" class="form-control form-control-sm border-dark" placeholder="Contoh: Sekretaris DPRD" required>
               </div>
-              <div class="mb-2">
-                  <label class="form-label mb-1">Jabatan *</label>
-                  <input type="text" name="jabatan" class="form-control form-control-sm" placeholder="Contoh: Kabag Humas" required>
+
+              <div class="row mb-2">
+                  <div class="col-6">
+                      <label class="form-label mb-1 fw-bold">Pangkat / Golongan *</label>
+                      <input type="text" name="pangkat_golongan" class="form-control form-control-sm border-dark" placeholder="Contoh: Pembina Utama Muda" required>
+                  </div>
+                  <div class="col-6">
+                      <label class="form-label mb-1 fw-bold">NIP</label>
+                      <input type="text" name="nip" class="form-control form-control-sm border-dark" placeholder="198...">
+                  </div>
               </div>
+              
               <div class="mb-3">
-                  <label class="form-label mb-1">No HP</label>
-                  <input type="number" name="no_hp" class="form-control form-control-sm" placeholder="08...">
+                  <label class="form-label mb-1 fw-bold">No HP</label>
+                  <input type="text" name="no_hp" class="form-control form-control-sm border-dark" placeholder="08...">
               </div>
 
               <div class="mb-2">
@@ -301,7 +332,7 @@ if (isset($_GET['aksi']) && $_GET['aksi'] == 'hapus') {
                           <button type="button" class="nav-link py-1" data-bs-toggle="tab" data-bs-target="#upload-panel-add" type="button" role="tab">[↑] Upload</button>
                       </li>
                   </ul>
-                  <div class="tab-content border rounded bg-white p-2" style="min-height: 125px;">
+                  <div class="tab-content border border-dark rounded bg-white p-2" style="min-height: 125px;">
                       <div class="tab-pane fade show active text-center" id="draw-panel-add" role="tabpanel">
                           <canvas id="signature-pad-add" class="border border-secondary rounded bg-light" style="width: 100%; height: 95px; cursor: crosshair;"></canvas>
                           <button type="button" id="clear-btn-add" class="btn btn-sm btn-light border text-danger py-0 px-2 mt-1" style="font-size:10px;">[X] Hapus</button>
@@ -315,9 +346,9 @@ if (isset($_GET['aksi']) && $_GET['aksi'] == 'hapus') {
               </div>
 
           </div>
-          <div class="modal-footer">
+          <div class="modal-footer bg-light">
               <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
-              <button type="submit" name="tambah" class="btn btn-primary btn-sm">Simpan</button>
+              <button type="submit" name="tambah" class="btn btn-dark btn-sm">Simpan Data</button>
           </div>
       </form>
     </div>
@@ -326,7 +357,7 @@ if (isset($_GET['aksi']) && $_GET['aksi'] == 'hapus') {
 
 <style>
 .tabs-mini .nav-link { font-size: 11px; font-family: monospace; color: #555; background: #f8f9fa; border: 1px solid #ced4da; margin-right: 3px; }
-.tabs-mini .nav-link.active { background: #2e2e2e !important; color: #fff !important; border-color: #2e2e2e; }
+.tabs-mini .nav-link.active { background: #212529 !important; color: #fff !important; border-color: #212529; }
 </style>
 
 <script type="text/javascript">
@@ -396,8 +427,7 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 
-    // II. ENGINE UNTUK MODAL EDIT PJ (DIPERBAIKI SECARA AKURAT)
-    // Pantau ketika ada modal edit yang dimunculkan ke layar
+    // II. ENGINE UNTUK MODAL EDIT PJ
     document.addEventListener('shown.bs.modal', function (event) {
         const modal = event.target;
         if (modal.id.startsWith('modalEdit')) {
@@ -406,7 +436,6 @@ document.addEventListener("DOMContentLoaded", function() {
             const ttdInputEdit = modal.querySelector('.ttd_canvas_input_edit');
             
             if (canvasEdit && clearBtnEdit && ttdInputEdit) {
-                // Jangan reset nilainya langsung ke kosong agar tidak merusak data lama jika form tidak disentuh
                 initSignaturePad(canvasEdit, clearBtnEdit, ttdInputEdit);
             }
         }
@@ -427,7 +456,7 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     });
 
-    // INTERSEPT SUBMIT FORM EDIT: Kunci pengiriman data gambar dari canvas ke input POST
+    // INTERSEPT SUBMIT FORM EDIT
     document.addEventListener('submit', function (event) {
         const form = event.target;
         if (form.classList.contains('form-edit-pj')) {
@@ -439,7 +468,6 @@ document.addEventListener("DOMContentLoaded", function() {
                 blank.width = canvasEdit.width; 
                 blank.height = canvasEdit.height;
                 
-                // JIKA CANVAS DIGAMBAR (TIDAK KOSONG), KONVERSI KE BASE64
                 if (canvasEdit.toDataURL() !== blank.toDataURL()) {
                     ttdInputEdit.value = canvasEdit.toDataURL();
                 }

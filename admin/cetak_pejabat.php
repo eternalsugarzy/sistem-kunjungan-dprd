@@ -10,6 +10,31 @@ $nama_bulan = [
     '05' => 'Mei', '06' => 'Juni', '07' => 'Juli', '08' => 'Agustus',
     '09' => 'September', '10' => 'Oktober', '11' => 'November', '12' => 'Desember'
 ];
+
+// ===================================================================
+// QUERY DINAMIS PENANDATANGAN (Sekretaris Dewan)
+// -------------------------------------------------------------------
+// TEMPLATE BLOK TTD/TTE PEJABAT (dipakai ulang di semua surat resmi):
+// Semua atribut pejabat penandatangan (nama, NIP, jabatan, pangkat/
+// golongan, file/goresan TTD) WAJIB diambil dari tabel
+// `penanggung_jawab`, TIDAK boleh ditulis statis di file surat.
+// ===================================================================
+$query_sekwan = mysqli_query($koneksi, "SELECT * FROM penanggung_jawab WHERE jabatan LIKE '%Sekretaris%' OR jabatan LIKE '%Sekwan%' LIMIT 1");
+$data_sekwan = mysqli_fetch_assoc($query_sekwan);
+
+if (!empty($data_sekwan['nama_pj'])) {
+    $nama_sekwan    = $data_sekwan['nama_pj'];
+    $nip_sekwan     = $data_sekwan['nip'];
+    $jabatan_sekwan = $data_sekwan['jabatan'];
+    $pangkat_sekwan = !empty($data_sekwan['pangkat_golongan']) ? $data_sekwan['pangkat_golongan'] : '-';
+    $ttd_raw        = $data_sekwan['file_ttd'];
+} else {
+    $nama_sekwan    = '<span style="color:red;">[Input Sekretaris di Master PJ]</span>';
+    $nip_sekwan     = '-';
+    $jabatan_sekwan = 'SEKRETARIS DEWAN';
+    $pangkat_sekwan = '-';
+    $ttd_raw        = '';
+}
 ?>
 
 <!DOCTYPE html>
@@ -26,7 +51,11 @@ $nama_bulan = [
             color: #000;
         }
         
-        /* KOP SURAT */
+        /* ===================================================================
+           TEMPLATE KOP SURAT:
+           Salin blok CSS & HTML kop ini apa adanya ke surat lain agar
+           kop selalu konsisten.
+        =================================================================== */
         .kop-container {
             width: 100%;
             border-bottom: 4px solid #000;
@@ -61,7 +90,11 @@ $nama_bulan = [
         }
         .table-laporan th { background-color: #e0e0e0; text-align: center; font-weight: bold; }
         
-        /* FOOTER TTD */
+        /* ===================================================================
+           TEMPLATE FOOTER TTD DINAMIS (dipakai ulang di semua surat resmi):
+           Semua data pejabat (jabatan, goresan TTD, nama, pangkat/golongan,
+           NIP) HARUS berasal dari variabel hasil query ke `penanggung_jawab`.
+        =================================================================== */
         .ttd-area {
             float: right;
             margin-top: 30px;
@@ -69,6 +102,8 @@ $nama_bulan = [
             width: 280px;
         }
         .ttd-area p { margin: 3px 0; }
+        .graphic-ttd-layer { height: 80px; display: flex; align-items: center; justify-content: center; margin: 5px 0; }
+        .graphic-ttd-layer img { max-height: 75px; max-width: 160px; object-fit: contain; }
         .nama-ttd { font-weight: bold; text-decoration: underline; margin-top: 70px !important; }
 
         @media print { 
@@ -84,6 +119,7 @@ $nama_bulan = [
         <button onclick="window.close()" style="padding: 8px 15px; cursor: pointer; border: 1px solid #ccc; border-radius: 4px;">Tutup</button>
     </div>
 
+    <!-- ===== TEMPLATE KOP SURAT: salin blok ini apa adanya ke surat lain ===== -->
     <div class="kop-container">
         <table class="kop-table">
             <tr>
@@ -100,6 +136,7 @@ $nama_bulan = [
             </tr>
         </table>
     </div>
+    <!-- ===== AKHIR TEMPLATE KOP SURAT ===== -->
 
     <div class="judul">
         <h4>LAPORAN MASTER DATA PEJABAT PENERIMA TAMU</h4>
@@ -140,13 +177,28 @@ $nama_bulan = [
         </tbody>
     </table>
 
+    <!-- ===== TEMPLATE FOOTER TTD: salin blok ini apa adanya ke surat lain ===== -->
     <div class="ttd-area">
         <p>Banjarmasin, <?= date('d') . ' ' . $nama_bulan[date('m')] . ' ' . date('Y'); ?></p>
-        <p>Sekretaris DPRD Kota Banjarmasin,</p>
-        <p class="nama-ttd">Iwan Fitriady, SH., MH.</p>
-        <p>Pembina Utama Muda</p>
-        <p>NIP. 19700101 199503 1 002</p>
+        <p><?= strtoupper($jabatan_sekwan); ?></p>
+        
+        <div class="graphic-ttd-layer">
+            <?php if(!empty($ttd_raw)): ?>
+                <?php if(strpos($ttd_raw, 'data:image') !== false || substr($ttd_raw, 0, 4) === 'data'): ?>
+                    <img src="<?= $ttd_raw; ?>" alt="TTD Goresan">
+                <?php else: ?>
+                    <img src="../uploads/ttd/<?= $ttd_raw; ?>" onerror="this.style.display='none'" alt="TTD File">
+                <?php endif; ?>
+            <?php else: ?>
+                <div style="height: 60px;"></div>
+            <?php endif; ?>
+        </div>
+
+        <p class="nama-ttd"><?= $nama_sekwan; ?></p>
+        <p><?= htmlspecialchars($pangkat_sekwan); ?></p>
+        <p>NIP. <?= $nip_sekwan; ?></p>
     </div>
+    <!-- ===== AKHIR TEMPLATE FOOTER TTD ===== -->
     
     <div style="clear: both;"></div>
 

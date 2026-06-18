@@ -44,7 +44,19 @@ $waktu         = $d['waktu_kunjungan'];
 $jumlah_orang  = $d['jumlah_peserta_rencana'];
 $pj_lapangan   = $d['nama_pj_lapangan'] ?? 'Sekretariat DPRD';
 
-// 2. QUERY DINAMIS SEKRETARIS DEWAN: Murni mencari data berdasarkan Jabatan di Database
+// ===================================================================
+// 2. QUERY DINAMIS PEJABAT PENANDATANGAN (SEKWAN): murni dari database
+// -------------------------------------------------------------------
+// TEMPLATE BLOK TTD/TTE PEJABAT (dipakai ulang di semua surat resmi):
+// Semua atribut pejabat penandatangan (nama, NIP, jabatan, pangkat/
+// golongan, file/goresan TTD) WAJIB diambil dari tabel
+// `penanggung_jawab`, TIDAK boleh ditulis statis di file surat.
+// Jika surat lain butuh pejabat penandatangan berbeda, cukup ubah
+// kondisi WHERE pada query di bawah (misal cari berdasarkan jabatan
+// 'Ketua' atau berdasarkan id_pj tertentu), lalu pakai kembali variabel
+// $nama_sekwan, $nip_sekwan, $jabatan_sekwan, $pangkat_sekwan, $ttd_raw
+// dan blok HTML "right-pejabat-block" apa adanya.
+// ===================================================================
 $query_sekwan = mysqli_query($koneksi, "SELECT * FROM penanggung_jawab WHERE jabatan LIKE '%Sekretaris%' OR jabatan LIKE '%Sekwan%' LIMIT 1");
 $data_sekwan = mysqli_fetch_assoc($query_sekwan);
 
@@ -53,12 +65,14 @@ if (!empty($data_sekwan['nama_pj'])) {
     $nama_sekwan    = $data_sekwan['nama_pj'];
     $nip_sekwan     = $data_sekwan['nip'];
     $jabatan_sekwan = $data_sekwan['jabatan'];
+    $pangkat_sekwan = !empty($data_sekwan['pangkat_golongan']) ? $data_sekwan['pangkat_golongan'] : '-';
     $ttd_raw        = $data_sekwan['file_ttd'];
 } else {
     // Jika belum diinput di master_pj, maka tampilkan peringatan teks merah ini
     $nama_sekwan    = '<span style="color:red;">[Input Sekretaris di Master PJ]</span>';
     $nip_sekwan     = '-';
     $jabatan_sekwan = 'SECRETARIS DEWAN';
+    $pangkat_sekwan = '-';
     $ttd_raw        = '';
 }
 
@@ -70,6 +84,12 @@ $tgl_surat = date('d F Y');
     <meta charset="UTF-8">
     <title>Surat Balasan Resmi - <?= htmlspecialchars($kode_booking); ?></title>
     <style>
+        /* ===================================================================
+           TEMPLATE KOP SURAT (dipakai ulang di semua surat resmi):
+           Struktur .kop-surat (logo + .text-kop dengan h2/h1/p) adalah
+           kop standar Sekretariat DPRD. Salin blok CSS & HTML kop ini
+           apa adanya ke surat lain agar kop selalu konsisten.
+        =================================================================== */
         body {
             font-family: "Times New Roman", Times, serif;
             background-color: #fff;
@@ -155,7 +175,13 @@ $tgl_surat = date('d F Y');
             vertical-align: top;
         }
 
-        /* LAYOUT TERPISAH: QR DI KIRI & TTD DI KANAN (GAMBAR 2) */
+        /* ===================================================================
+           TEMPLATE LAYOUT TANDA TANGAN (dipakai ulang di semua surat resmi):
+           - QR code keabsahan/verifikasi TTE selalu di KIRI (.left-qr-block)
+           - Blok pejabat penandatangan (jabatan, goresan TTD, nama, pangkat/
+             golongan, NIP) selalu di KANAN (.right-pejabat-block)
+           Salin struktur .tanda-tangan-section ini apa adanya ke surat lain.
+        =================================================================== */
         .tanda-tangan-section {
             width: 100%;
             margin-top: 40px;
@@ -239,6 +265,7 @@ $tgl_surat = date('d F Y');
     </button>
 
     <div class="sheet">
+        <!-- ===== TEMPLATE KOP SURAT: salin blok ini apa adanya ke surat lain ===== -->
         <div class="kop-surat">
             <img src="../assets/images/logo.png" class="logo-daerah" alt="Logo">
             <div class="text-kop">
@@ -247,6 +274,7 @@ $tgl_surat = date('d F Y');
                 <p>Jalan Jenderal A. Yani Km. 3,5 No. 21, Banjarmasin, Kode Pos 70234</p>
             </div>
         </div>
+        <!-- ===== AKHIR TEMPLATE KOP SURAT ===== -->
 
         <table class="Atribut-surat">
             <tr>
@@ -315,6 +343,13 @@ $tgl_surat = date('d F Y');
             <p>Demikian surat konfirmasi balasan ini kami sampaikan untuk menjadi perhatian. Atas kerja sama dan koordinasi yang baik dari instansi Saudara, kami ucapkan terima kasih.</p>
         </div>
 
+        <!-- ===================================================================
+             TEMPLATE BLOK TANDA TANGAN: salin struktur ini apa adanya ke surat
+             lain. QR keabsahan selalu di kiri, blok pejabat selalu di kanan.
+             Semua data pejabat (nama, jabatan, pangkat/golongan, NIP, TTD)
+             HARUS berasal dari variabel hasil query ke `penanggung_jawab`,
+             jangan ditulis statis/hardcoded di HTML.
+        =================================================================== -->
         <div class="tanda-tangan-section">
             
             <div class="left-qr-block">
@@ -343,11 +378,12 @@ $tgl_surat = date('d F Y');
                 </div>
                 
                 <strong style="text-decoration: underline;"><?= htmlspecialchars($nama_sekwan); ?></strong><br>
-                Pembina Utama Madya<br>
+                <?= htmlspecialchars($pangkat_sekwan); ?><br>
                 NIP. <?= htmlspecialchars($nip_sekwan); ?>
             </div>
 
         </div>
+        <!-- ===== AKHIR TEMPLATE BLOK TANDA TANGAN ===== -->
 
     </div>
 
