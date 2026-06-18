@@ -7,6 +7,9 @@ include 'template/header.php';
 include 'template/sidebar.php';
 include '../koneksi.php';
 
+// SEMBUNYIKAN LOADER CSS
+echo '<style>.loader-bg, .preloader, #pc-loader, .pc-loader { display: none !important; visibility: hidden !important; opacity: 0 !important; }</style>';
+
 $id_kunjungan = isset($_GET['id']) ? mysqli_real_escape_string($koneksi, $_GET['id']) : '';
 $pesan_sukses = "";
 $pesan_error = "";
@@ -34,20 +37,17 @@ if (isset($_POST['simpan_spt'])) {
     $jumlah_ditugaskan = mysqli_real_escape_string($koneksi, $_POST['jumlah_ditugaskan']);
 
     if ($data_spt) {
-        // UPDATE JIKA SUDAH ADA
         $query = "UPDATE spt_tugas SET 
                   jenis_petugas = '$jenis_petugas', no_spt = '$no_spt', tgl_spt = '$tgl_spt', 
                   nama_pegawai = '$nama_pegawai', nip = '$nip', jabatan = '$jabatan', 
                   jumlah_ditugaskan = '$jumlah_ditugaskan' 
                   WHERE id_kunjungan = '$id_kunjungan'";
     } else {
-        // INSERT JIKA BELUM ADA
         $query = "INSERT INTO spt_tugas (id_kunjungan, jenis_petugas, no_spt, tgl_spt, nama_pegawai, nip, jabatan, jumlah_ditugaskan) 
                   VALUES ('$id_kunjungan', '$jenis_petugas', '$no_spt', '$tgl_spt', '$nama_pegawai', '$nip', '$jabatan', '$jumlah_ditugaskan')";
     }
 
     if (mysqli_query($koneksi, $query)) {
-        // Langsung arahkan ke halaman cetak setelah berhasil simpan
         echo "<script>
                 alert('Data SPT berhasil disimpan! Mengalihkan ke halaman cetak...');
                 window.location.href = 'cetak_spt.php?id=$id_kunjungan';
@@ -64,12 +64,12 @@ if (isset($_POST['simpan_spt'])) {
         <div class="row align-items-center">
             <div class="col-md-12">
                 <div class="page-header-title">
-                    <h5 class="m-b-5">Pembuatan Surat Perintah Tugas (SPT)</h5>
+                    <h5 class="m-b-5">Penerbitan Surat Perintah Tugas (SPT)</h5>
                 </div>
                 <ul class="breadcrumb mb-3" style="background:transparent; padding:0; font-size:11px;">
                     <li class="breadcrumb-item"><a href="dashboard.php">Home</a></li>
-                    <li class="breadcrumb-item"><a href="data_kunjungan.php">Data Kunjungan</a></li>
-                    <li class="breadcrumb-item text-muted">Buat SPT</li>
+                    <li class="breadcrumb-item"><a href="data_kunjungan.php">Arsip Kunjungan</a></li>
+                    <li class="breadcrumb-item text-muted">Input SPT</li>
                 </ul>
             </div>
         </div>
@@ -77,75 +77,102 @@ if (isset($_POST['simpan_spt'])) {
 </div>
 
 <div class="row justify-content-center">
-    <div class="col-lg-8">
+    <div class="col-lg-9">
         
         <?php if (!empty($pesan_error)): ?>
-            <div class="alert alert-danger"><i class="ti ti-alert-circle me-2"></i> <?= $pesan_error; ?></div>
+            <div class="alert alert-danger d-flex align-items-center shadow-sm">
+                <i class="ti ti-alert-circle f-24 me-2"></i> 
+                <div><?= $pesan_error; ?></div>
+            </div>
         <?php endif; ?>
 
-        <div class="card shadow-sm border-dark">
-            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
-                <h6 class="mb-0 text-white">Form Input SPT: <?= $data_kunjungan['kode_booking']; ?></h6>
-                <span class="badge bg-light text-dark"><?= $data_kunjungan['nama_instansi_tamu']; ?></span>
+        <div class="card shadow-sm border-0 mb-4 bg-dark text-white">
+            <div class="card-body d-flex justify-content-between align-items-center p-3">
+                <div>
+                    <h5 class="mb-1 text-white"><i class="ti ti-file-certificate me-2"></i>Form Administrasi SPT</h5>
+                    <small class="text-white-50">Silakan lengkapi form penugasan di bawah ini sebelum mencetak dokumen.</small>
+                </div>
+                <div class="text-end">
+                    <span class="d-block text-white-50 small mb-1">Tiket Rujukan:</span>
+                    <span class="badge bg-white text-dark f-14 px-3 py-2 border-dark"><?= $data_kunjungan['kode_booking']; ?></span>
+                </div>
             </div>
-            <div class="card-body">
-                <form method="POST" action="">
-                    
-                    <div class="row mb-3">
+        </div>
+
+        <form method="POST" action="">
+            
+            <div class="card shadow-sm border-dark mb-4">
+                <div class="card-header bg-white border-bottom border-dark">
+                    <h6 class="fw-bold mb-0 text-dark">A. Nomor & Tanggal Surat</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row g-4">
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">Nomor Surat (SPT) <span class="text-danger">*</span></label>
-                            <input type="text" name="no_spt" class="form-control" placeholder="Contoh: 090/DPRD/SPT/2026" value="<?= $data_spt['no_spt'] ?? ''; ?>" required>
+                            <label class="form-label fw-bold"><i class="ti ti-hash text-muted me-1"></i>Nomor SPT <span class="text-danger">*</span></label>
+                            <input type="text" name="no_spt" class="form-control form-control-lg border-dark" placeholder="090/DPRD/SPT/2026" value="<?= $data_spt['no_spt'] ?? ''; ?>" required>
+                            <small class="text-muted mt-1 d-block">Format resmi nomor surat keluar Sekretariat.</small>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">Tanggal SPT <span class="text-danger">*</span></label>
-                            <input type="date" name="tgl_spt" class="form-control" value="<?= $data_spt['tgl_spt'] ?? date('Y-m-d'); ?>" required>
+                            <label class="form-label fw-bold"><i class="ti ti-calendar-event text-muted me-1"></i>Tanggal Terbit <span class="text-danger">*</span></label>
+                            <input type="date" name="tgl_spt" class="form-control form-control-lg border-dark" value="<?= $data_spt['tgl_spt'] ?? date('Y-m-d'); ?>" required>
                         </div>
                     </div>
+                </div>
+            </div>
 
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Jenis Petugas / Peran <span class="text-danger">*</span></label>
-                        <select name="jenis_petugas" class="form-select" required>
-                            <option value="">-- Pilih Jenis --</option>
-                            <option value="dprd" <?= (isset($data_spt['jenis_petugas']) && $data_spt['jenis_petugas'] == 'dprd') ? 'selected' : ''; ?>>Anggota DPRD (Penerima Tamu)</option>
-                            <option value="pendamping" <?= (isset($data_spt['jenis_petugas']) && $data_spt['jenis_petugas'] == 'pendamping') ? 'selected' : ''; ?>>Staf Pendamping (Sekretariat)</option>
+            <div class="card shadow-sm border-dark mb-4">
+                <div class="card-header bg-white border-bottom border-dark d-flex justify-content-between align-items-center">
+                    <h6 class="fw-bold mb-0 text-dark">B. Detail Pegawai/Pejabat yang Ditugaskan</h6>
+                    <span class="badge bg-light-secondary text-dark">Melayani: <?= $data_kunjungan['nama_instansi_tamu']; ?></span>
+                </div>
+                <div class="card-body">
+                    
+                    <div class="mb-4">
+                        <label class="form-label fw-bold"><i class="ti ti-briefcase text-muted me-1"></i>Kategori Peran <span class="text-danger">*</span></label>
+                        <select name="jenis_petugas" class="form-select form-select-lg border-dark" required>
+                            <option value="">-- Pilih Jenis Penugasan --</option>
+                            <option value="dprd" <?= (isset($data_spt['jenis_petugas']) && $data_spt['jenis_petugas'] == 'dprd') ? 'selected' : ''; ?>>Penerima Tamu Resmi (Anggota DPRD / Komisi)</option>
+                            <option value="pendamping" <?= (isset($data_spt['jenis_petugas']) && $data_spt['jenis_petugas'] == 'pendamping') ? 'selected' : ''; ?>>Staf Pendamping (Pegawai Sekretariat DPRD)</option>
                         </select>
                     </div>
 
-                    <hr class="border-dashed my-4">
-                    <h6 class="fw-bold mb-3 bg-light p-2 border-start border-4 border-dark">Pegawai yang Ditugaskan:</h6>
-
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold">Nama Pegawai / Pejabat <span class="text-danger">*</span></label>
-                            <input type="text" name="nama_pegawai" class="form-control" placeholder="Nama Lengkap & Gelar" value="<?= $data_spt['nama_pegawai'] ?? ''; ?>" required>
+                    <div class="row g-4 mb-4">
+                        <div class="col-md-7">
+                            <label class="form-label fw-bold"><i class="ti ti-user text-muted me-1"></i>Nama Lengkap & Gelar <span class="text-danger">*</span></label>
+                            <input type="text" name="nama_pegawai" class="form-control border-dark" placeholder="Contoh: H. Ahmad Saiduns, S.Kom, MAP" value="<?= $data_spt['nama_pegawai'] ?? ''; ?>" required>
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold">NIP</label>
-                            <input type="text" name="nip" class="form-control" placeholder="Kosongkan jika bukan ASN" value="<?= $data_spt['nip'] ?? ''; ?>">
+                        <div class="col-md-5">
+                            <label class="form-label fw-bold"><i class="ti ti-id text-muted me-1"></i>Nomor Induk Pegawai (NIP)</label>
+                            <input type="text" name="nip" class="form-control border-dark" placeholder="Kosongkan jika Honorer/Dewan" value="<?= $data_spt['nip'] ?? ''; ?>">
                         </div>
                     </div>
 
-                    <div class="row mb-4">
-                        <div class="col-md-8">
-                            <label class="form-label fw-bold">Jabatan <span class="text-danger">*</span></label>
-                            <input type="text" name="jabatan" class="form-control" placeholder="Contoh: Ketua Komisi / Staf Humas" value="<?= $data_spt['jabatan'] ?? ''; ?>" required>
+                    <div class="row g-4">
+                        <div class="col-md-9">
+                            <label class="form-label fw-bold"><i class="ti ti-award text-muted me-1"></i>Jabatan <span class="text-danger">*</span></label>
+                            <input type="text" name="jabatan" class="form-control border-dark" placeholder="Contoh: Ketua Komisi I / Staf Ahli" value="<?= $data_spt['jabatan'] ?? ''; ?>" required>
                         </div>
-                        <div class="col-md-4">
-                            <label class="form-label fw-bold">Jumlah Orang <span class="text-danger">*</span></label>
-                            <input type="number" name="jumlah_ditugaskan" class="form-control" value="<?= $data_spt['jumlah_ditugaskan'] ?? '1'; ?>" required>
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold"><i class="ti ti-users text-muted me-1"></i>Banyaknya <span class="text-danger">*</span></label>
+                            <div class="input-group border-dark">
+                                <input type="number" name="jumlah_ditugaskan" class="form-control border-dark text-center" value="<?= $data_spt['jumlah_ditugaskan'] ?? '1'; ?>" min="1" required>
+                                <span class="input-group-text bg-light border-dark">Orang</span>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="d-flex justify-content-between mt-4">
-                        <a href="detail_kunjungan.php?id=<?= $id_kunjungan; ?>" class="btn btn-light border px-4">Batal</a>
-                        <button type="submit" name="simpan_spt" class="btn btn-dark px-4">
-                            <i class="ti ti-device-floppy me-1"></i> Simpan & Lanjut Cetak
-                        </button>
-                    </div>
-
-                </form>
+                </div>
+                
+                <div class="card-footer bg-light border-top border-dark d-flex justify-content-between p-3">
+                    <a href="data_kunjungan.php" class="btn btn-outline-dark px-4"><i class="ti ti-arrow-left me-1"></i> Kembali</a>
+                    <button type="submit" name="simpan_spt" class="btn btn-dark px-4 fw-bold">
+                        <i class="ti ti-printer me-1"></i> Simpan Data & Cetak Dokumen SPT
+                    </button>
+                </div>
             </div>
-        </div>
+
+        </form>
+
     </div>
 </div>
 

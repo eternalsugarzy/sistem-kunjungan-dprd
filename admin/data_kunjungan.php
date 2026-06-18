@@ -37,13 +37,6 @@ if (isset($koneksi)) {
       echo "<script>alert('Data Berhasil Dihapus!'); window.location='data_kunjungan.php';</script>";
     }
   }
-
-  // B. TANDAI SELESAI
-  if (isset($_GET['aksi']) && $_GET['aksi'] == 'selesai') {
-    $id = mysqli_real_escape_string($koneksi, $_GET['id']);
-    mysqli_query($koneksi, "UPDATE kunjungan SET status_kegiatan='selesai' WHERE id_kunjungan='$id'");
-    echo "<script>window.location='data_kunjungan.php';</script>";
-  }
 }
 ?>
 
@@ -65,29 +58,32 @@ if (isset($koneksi)) {
 
 <div class="row">
   <div class="col-sm-12">
-    <div class="card">
-      <div class="card-header d-flex justify-content-between align-items-center">
-        <h5>Arsip Data Kunjungan</h5>
-        <small class="text-danger">*Kategori dinamis terhubung ke tabel master kategori_kunjungan</small>
+    <div class="card shadow-sm border-dark">
+      <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0 text-white">Arsip Data Kunjungan</h5>
+        <small class="text-warning">*Kategori dinamis terhubung ke tabel master</small>
       </div>
       <div class="card-body">
 
         <form method="GET" action="" class="row g-2 mb-4 align-items-center">
           <div class="col-auto">
-            <select name="status" class="form-select form-select-sm" style="min-width: 140px;">
+            <select name="status" class="form-select border-dark" style="min-width: 160px;">
               <option value="">-- Semua Status --</option>
-              <option value="pending">Pending</option>
-              <option value="dijadwalkan">Dijadwalkan</option>
-              <option value="selesai">Selesai</option>
-              <option value="batal">Batal</option>
+              <option value="pending" <?= (isset($_GET['status']) && $_GET['status'] == 'pending') ? 'selected' : ''; ?>>Pending</option>
+              <option value="dijadwalkan" <?= (isset($_GET['status']) && $_GET['status'] == 'dijadwalkan') ? 'selected' : ''; ?>>Dijadwalkan</option>
+              <option value="sedang berkunjung" <?= (isset($_GET['status']) && $_GET['status'] == 'sedang berkunjung') ? 'selected' : ''; ?>>Sedang Berkunjung</option>
+              <option value="selesai" <?= (isset($_GET['status']) && $_GET['status'] == 'selesai') ? 'selected' : ''; ?>>Selesai</option>
+              <option value="batal" <?= (isset($_GET['status']) && $_GET['status'] == 'batal') ? 'selected' : ''; ?>>Batal</option>
             </select>
           </div>
           <div class="col-auto">
-            <input type="text" name="cari" class="form-control form-control-sm" placeholder="Cari instansi..."
-              style="min-width: 180px;">
+            <input type="text" name="cari" class="form-control border-dark" placeholder="Cari instansi..." value="<?= isset($_GET['cari']) ? htmlspecialchars($_GET['cari']) : ''; ?>" style="min-width: 200px;">
           </div>
           <div class="col-auto">
-            <button type="submit" class="btn btn-secondary btn-sm px-3"><i class="ti ti-filter me-1"></i>Filter</button>
+            <button type="submit" class="btn btn-dark px-4"><i class="ti ti-filter me-1"></i>Filter</button>
+            <?php if(isset($_GET['status']) || isset($_GET['cari'])): ?>
+                <a href="data_kunjungan.php" class="btn btn-outline-danger ms-2">Reset</a>
+            <?php endif; ?>
           </div>
         </form>
 
@@ -95,13 +91,13 @@ if (isset($koneksi)) {
           <table class="table table-hover table-bordered align-middle" id="tabelKunjungan">
             <thead class="table-dark">
               <tr>
-                <th width="5%">No</th>
-                <th>Kode &amp; Tgl</th>
-                <th>Instansi</th>
-                <th>Kategori</th>
-                <th>Status</th>
-                <th>Status QR</th>
-                <th class="text-center" width="18%">Aksi</th>
+                <th width="5%" class="text-center">No</th>
+                <th width="15%">Kode &amp; Tgl</th>
+                <th width="20%">Instansi</th>
+                <th width="12%">Kategori</th>
+                <th width="12%" class="text-center">Status</th>
+                <th width="10%" class="text-center">QR Scan</th>
+                <th class="text-center" width="26%">Aksi</th>
               </tr>
             </thead>
             <tbody>
@@ -110,7 +106,6 @@ if (isset($koneksi)) {
               $any_data = false;
 
               if (isset($koneksi)) {
-                // UPDATE QUERY: Melakukan LEFT JOIN ke tabel kategori_kunjungan yang baru
                 $query = "SELECT kunjungan.*, IFNULL(kategori_kunjungan.nama_kategori, 'Umum') as nama_kategori 
                           FROM kunjungan 
                           LEFT JOIN kategori_kunjungan ON kunjungan.id_kategori = kategori_kunjungan.id_kategori";
@@ -137,12 +132,9 @@ if (isset($koneksi)) {
                   while ($d = mysqli_fetch_array($result)) {
                     $status = strtolower($d['status_kegiatan'] ?? 'pending');
                     $instansi = $d['nama_instansi_tamu'] ?? 'Instansi Tidak Diketahui';
-                    
-                    // Kategori mengambil dari hasil JOIN relasi tabel database baru
                     $kategori_text = $d['nama_kategori'];
 
-                    // Pengaturan status QR otomatis berbasis logika backend
-                    if ($status == 'selesai') {
+                    if ($status == 'selesai' || $status == 'sedang berkunjung') {
                       $status_qr_html = '<span class="badge bg-light-success text-success border border-success px-2 py-1">Sudah Scan</span>';
                     } elseif ($status == 'dijadwalkan') {
                       $status_qr_html = '<span class="badge bg-light-warning text-warning border border-warning px-2 py-1">Belum Scan</span>';
@@ -151,10 +143,10 @@ if (isset($koneksi)) {
                     }
                     ?>
                     <tr>
-                      <td><?= $no++; ?></td>
+                      <td class="text-center"><?= $no++; ?></td>
                       <td>
-                        <span class="fw-bold text-primary" style="font-size:12px;"><?= htmlspecialchars($d['kode_booking']); ?></span><br>
-                        <small class="text-muted"><i class="ti ti-calendar me-1"></i><?= date('d-m-Y', strtotime($d['tgl_kunjungan'])); ?></small>
+                        <span class="fw-bold text-dark font-monospace" style="font-size:13px;"><?= htmlspecialchars($d['kode_booking']); ?></span><br>
+                        <small class="text-muted"><i class="ti ti-calendar me-1"></i><?= date('d M Y', strtotime($d['tgl_kunjungan'])); ?></small>
                       </td>
                       <td>
                         <h6 class="mb-0 fw-bold"><?= htmlspecialchars($instansi); ?></h6>
@@ -163,25 +155,32 @@ if (isset($koneksi)) {
                       <td>
                         <span class="badge bg-light-secondary text-dark border" style="font-size: 11px;"><?= htmlspecialchars($kategori_text); ?></span>
                       </td>
-                      <td>
+                      <td class="text-center">
                         <?php
-                        if ($status == 'pending') echo '<span class="badge bg-warning">Pending</span>';
-                        elseif ($status == 'dijadwalkan') echo '<span class="badge bg-primary">Dijadwalkan</span>';
-                        elseif ($status == 'selesai') echo '<span class="badge bg-success">Selesai</span>';
-                        else echo '<span class="badge bg-danger">Batal</span>';
+                        if ($status == 'pending') {
+                            echo '<span class="badge bg-warning">Pending</span>';
+                        } elseif ($status == 'dijadwalkan') {
+                            echo '<span class="badge bg-primary">Dijadwalkan</span>';
+                        } elseif ($status == 'sedang berkunjung') {
+                            echo '<span class="badge bg-info text-white"><i class="ti ti-loader rotate-refresh me-1"></i>Berkunjung</span>';
+                        } elseif ($status == 'selesai') {
+                            echo '<span class="badge bg-success"><i class="ti ti-check me-1"></i>Selesai</span>';
+                        } else {
+                            echo '<span class="badge bg-danger">Batal</span>';
+                        }
                         ?>
                       </td>
-                      <td><?= $status_qr_html; ?></td>
+                      <td class="text-center"><?= $status_qr_html; ?></td>
                       <td class="text-center">
                         <div class="d-flex gap-1 justify-content-center">
-                          <a href="detail_kunjungan.php?id=<?= $d['id_kunjungan']; ?>" class="btn btn-light text-dark border btn-sm">
+                          <a href="detail_kunjungan.php?id=<?= $d['id_kunjungan']; ?>" class="btn btn-dark btn-sm">
                             <i class="ti ti-file-text me-1"></i>Detail
                           </a>
-                          <a href="input_spt.php?id=<?= $d['id_kunjungan']; ?>" class="btn btn-warning btn-sm <?= ($status == 'pending') ? 'disabled opacity-50' : ''; ?>">
-                            <i class="ti ti-file-description me-1"></i>SPT
+                          <a href="input_spt.php?id=<?= $d['id_kunjungan']; ?>" class="btn btn-outline-dark btn-sm <?= ($status == 'pending' || $status == 'batal') ? 'disabled opacity-50' : ''; ?>">
+                            <i class="ti ti-file-description me-1"></i>Input SPT
                           </a>
-                          <a href="data_kunjungan.php?aksi=hapus&id=<?= $d['id_kunjungan']; ?>" class="btn btn-danger btn-sm" onclick="return confirm('Hapus data?')">
-                            <i class="ti ti-trash"></i>
+                          <a href="data_kunjungan.php?aksi=hapus&id=<?= $d['id_kunjungan']; ?>" class="btn btn-danger btn-sm" onclick="return confirm('Hapus permanen arsip kunjungan ini?')">
+                            <i class="ti ti-trash me-1"></i>Hapus
                           </a>
                         </div>
                       </td>
@@ -192,7 +191,7 @@ if (isset($koneksi)) {
               }
 
               if (!$any_data) {
-                echo '<tr><td colspan="7" class="text-center text-muted py-4">Tidak ada arsip data kunjungan yang tersimpan.</td></tr>';
+                echo '<tr><td colspan="7" class="text-center text-muted py-4"><i class="ti ti-folder-off f-24 d-block mb-2"></i>Tidak ada arsip data kunjungan yang tersimpan.</td></tr>';
               }
               ?>
             </tbody>
@@ -203,6 +202,12 @@ if (isset($koneksi)) {
     </div>
   </div>
 </div>
+
+<style>
+/* Animasi kecil untuk status sedang berkunjung */
+@keyframes spin { 100% { transform: rotate(360deg); } }
+.rotate-refresh { display: inline-block; animation: spin 2s linear infinite; }
+</style>
 
 <?php
 include 'template/footer.php';
