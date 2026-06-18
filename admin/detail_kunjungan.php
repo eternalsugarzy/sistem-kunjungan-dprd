@@ -43,6 +43,46 @@ $email        = ($d && isset($d['email_pemohon'])) ? $d['email_pemohon'] : 'dprd
 $tujuan       = ($d && isset($d['materi_kunjungan'])) ? $d['materi_kunjungan'] : 'Studi Tiru Perda Wisata';
 $status       = ($d && isset($d['status_kegiatan'])) ? strtolower($d['status_kegiatan']) : 'selesai';
 
+// ==========================================
+// LOGIKA PEMBUATAN & PENYIMPANAN QR CODE OTOMATIS KE DATABASE
+// ==========================================
+$qr_code_path = ($d && isset($d['qr_code_path'])) ? $d['qr_code_path'] : '';
+$qr_api_url = "https://api.qrserver.com/v1/create-qr-code/?size=130x130&data=" . urlencode($kode_booking);
+
+// Jika QR Code belum ada di database, download dari API dan simpan ke folder lokal
+if (empty($qr_code_path) && $is_mockup == false) {
+    $folder_qr = "../uploads/qr/";
+    
+    // Buat folder jika belum ada
+    if (!file_exists($folder_qr)) {
+        mkdir($folder_qr, 0777, true);
+    }
+    
+    $nama_file_qr = "QR_" . $kode_booking . ".png";
+    $path_simpan_lokal = $folder_qr . $nama_file_qr;
+    
+    // Ambil gambar dari API
+    $gambar_qr = @file_get_contents($qr_api_url);
+    if ($gambar_qr !== false) {
+        // Simpan gambar ke folder
+        file_put_contents($path_simpan_lokal, $gambar_qr);
+        
+        // Simpan path ke database
+        $path_db = "uploads/qr/" . $nama_file_qr;
+        mysqli_query($koneksi, "UPDATE kunjungan SET qr_code_path = '$path_db' WHERE id_kunjungan = '$id_kunjungan'");
+        
+        $qr_code_path = $path_db;
+        $qr_image_src = "../" . $path_db; // Gunakan ../ karena ini di dalam folder admin/
+    } else {
+        $qr_image_src = $qr_api_url; // Fallback jika gagal download
+    }
+} else if (!empty($qr_code_path)) {
+    // Jika sudah ada di database, panggil gambar lokalnya
+    $qr_image_src = "../" . $qr_code_path;
+} else {
+    $qr_image_src = $qr_api_url; // Fallback mockup
+}
+
 // Logika penentu kategori otomatis berdasarkan isi teks materi permohonan
 $materi_cek = strtolower($tujuan);
 $kategori = 'Audiensi';
@@ -56,7 +96,6 @@ $pj           = ($d && isset($d['nama_pj'])) ? $d['nama_pj'] : 'H. Muh. Jaini, S
 $tgl_format   = date('d F Y', strtotime($tgl_kunjungan));
 ?>
 
-<!-- BREADCRUMB (SAMA SEPERTI DASHBOARD / DATA KUNJUNGAN) -->
 <div class="page-header">
   <div class="page-block">
     <div class="row align-items-center">
@@ -74,21 +113,17 @@ $tgl_format   = date('d F Y', strtotime($tgl_kunjungan));
   </div>
 </div>
 
-<!-- KONTEN UTAMA DENGAN TEMA COMPONENT DASHBOARD LAMA -->
 <div class="row">
     <div class="col-xl-12">
         <div class="card">
-            <!-- HEADER CARD -->
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">Detail Kunjungan: <span class="text-primary"><?= htmlspecialchars($kode_booking); ?></span></h5>
                 <a href="data_kunjungan.php" class="btn btn-sm btn-light-secondary text-dark border">Kembali</a>
             </div>
             
-            <!-- BODY CARD -->
             <div class="card-body">
                 <div class="row g-4">
                     
-                    <!-- SISI KIRI: TABEL INFORMASI ATRIBUT -->
                     <div class="col-md-8 border-end-md">
                         <div class="table-responsive">
                             <table class="table table-hover align-middle mb-0">
@@ -117,7 +152,6 @@ $tgl_format   = date('d F Y', strtotime($tgl_kunjungan));
                                         <td class="text-muted fw-normal">Kategori</td>
                                         <td>: 
                                             <span class="badge bg-light-secondary text-dark border"><?= htmlspecialchars($kategori); ?></span>
-                                            <span class="badge bg-danger ms-1 style-mini-tag">UPDATE</span>
                                         </td>
                                     </tr>
                                     <tr>
@@ -143,12 +177,11 @@ $tgl_format   = date('d F Y', strtotime($tgl_kunjungan));
                             </table>
                         </div>
 
-                        <!-- LOG STATUS QR CODE -->
                         <div class="mt-4 pt-3 border-top border-dashed">
-                            <h6 class="fw-bold mb-2 text-dark">Status QR Code: <span class="badge bg-danger style-mini-tag">BARU</span></h6>
+                            <h6 class="fw-bold mb-2 text-dark">Status QR Code:</h6>
                             <div class="p-3 rounded bg-light border border-dashed text-dark" style="font-size: 12px; line-height: 1.8;">
                                 <div class="text-success"><i class="ti ti-circle-check-filled me-1"></i> QR Code sukses dibuat oleh sistem admin.</div>
-                                <div class="text-success"><i class="ti ti-circle-check-filled me-1"></i> E-Ticket konfirmasi lampiran otomatis terkirim ke email tamu.</div>
+                                <div class="text-success"><i class="ti ti-circle-check-filled me-1"></i> Path lokal tersimpan di DB: <strong><?= !empty($qr_code_path) ? $qr_code_path : 'Menunggu Generate...'; ?></strong></div>
                                 <?php if($status == 'selesai'): ?>
                                     <div class="text-success"><i class="ti ti-circle-check-filled me-1"></i> Kunjungan valid — QR telah berhasil dipindai di pintu front office pada <?= $tgl_format; ?> (<?= htmlspecialchars($waktu); ?> WITA)</div>
                                 <?php else: ?>
@@ -158,21 +191,17 @@ $tgl_format   = date('d F Y', strtotime($tgl_kunjungan));
                         </div>
                     </div>
 
-                    <!-- SISI KANAN: GENERATOR LIVE E-TICKET QR CODE -->
                     <div class="col-md-4 text-center d-flex flex-column align-items-center justify-content-start pt-2">
                         <span class="text-muted d-block mb-3 fw-bold small">E-Ticket QR Code:</span>
                         
-                        <!-- Box Frame QR Code Bawaan Template -->
                         <div class="p-3 border rounded bg-white shadow-sm d-flex align-items-center justify-content-center" style="width: 160px; height: 160px;">
-                            <img src="https://api.qrserver.com/v1/create-qr-code/?size=130x130&data=<?= urlencode($kode_booking); ?>" 
-                                 alt="QR" class="img-fluid">
+                            <img src="<?= $qr_image_src; ?>" alt="QR" class="img-fluid">
                         </div>
                         <small class="text-muted d-block mt-2 font-monospace fw-bold"><?= htmlspecialchars($kode_booking); ?></small>
                     </div>
 
                 </div>
 
-                <!-- SEKSI AKSI CETAK ADMINISTRASI (BAGIAN BAWAH CARD) -->
                 <div class="mt-4 pt-4 border-top border-dashed">
                     <h6 class="fw-bold text-dark mb-3">Lampiran &amp; Cetak Dokumen Administrasi:</h6>
                     <div class="d-flex gap-2 flex-wrap">
@@ -180,18 +209,17 @@ $tgl_format   = date('d F Y', strtotime($tgl_kunjungan));
                             <i class="ti ti-download me-1"></i>Lihat Surat Permohonan
                         </a>
                         <a href="cetak_surat_tte.php?id=<?= $id_kunjungan; ?>" target="_blank" class="btn btn-sm btn-outline-primary <?= ($status == 'pending') ? 'disabled opacity-50' : ''; ?>">
-                            <i class="ti ti-file-certificate me-1"></i>Cetak Surat Balasan ber-TTE <span class="badge bg-light-danger text-danger style-mini-tag">UPDATE</span>
+                            <i class="ti ti-file-certificate me-1"></i>Cetak Surat Balasan ber-TTE
                         </a>
                         <a href="cetak_disposisi_tte.php?id=<?= $id_kunjungan; ?>" target="_blank" class="btn btn-sm btn-outline-warning <?= ($status == 'pending') ? 'disabled opacity-50' : ''; ?>">
-                            <i class="ti ti-file-description me-1"></i>Cetak Lembar Disposisi + TTE <span class="badge bg-light-danger text-danger style-mini-tag">UPDATE</span>
+                            <i class="ti ti-file-description me-1"></i>Cetak Lembar Disposisi + TTE
                         </a>
                         <a href="cetak_spt.php?id=<?= $id_kunjungan; ?>" target="_blank" class="btn btn-sm btn-outline-info <?= ($status == 'pending') ? 'disabled opacity-50' : ''; ?>">
-                            <i class="ti ti-printer me-1"></i>Cetak Dokumen SPT <span class="badge bg-danger text-white style-mini-tag">BARU</span>
+                            <i class="ti ti-printer me-1"></i>Cetak Dokumen SPT
                         </a>
                     </div>
                 </div>
 
-                <!-- BUTTON CLOSING FOOTER CARD -->
                 <div class="d-flex justify-content-end mt-4">
                     <a href="data_kunjungan.php" class="btn btn-dark px-4">Tutup</a>
                 </div>
@@ -201,7 +229,6 @@ $tgl_format   = date('d F Y', strtotime($tgl_kunjungan));
     </div>
 </div>
 
-<!-- UTILITY STYLE TAMBAHAN -->
 <style>
 .border-dashed {
     border-style: dashed !important;
