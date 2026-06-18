@@ -15,6 +15,7 @@ echo '<style>.loader-bg, .preloader, #pc-loader, .pc-loader { display: none !imp
 
 $pesan_sukses = "";
 $pesan_gagal = "";
+$redirect_url = ""; // Variabel baru untuk menampung URL tujuan cetak kartu
 
 // ==========================================
 // PROSES DATABASE SAAT QR BERHASIL DISCAN
@@ -30,15 +31,19 @@ if (isset($_POST['kode_booking'])) {
         
         if (strtolower($data['status_kegiatan']) == 'pending') {
             $pesan_gagal = "Gagal! Permohonan " . $kode_booking . " belum diverifikasi oleh pimpinan.";
-        } elseif (strtolower($data['status_kegiatan']) == 'selesai') {
+        } elseif (strtolower($data['status_kegiatan']) == 'selesai' || strtolower($data['status_kehadiran']) == 'hadir') {
+            // Jika sudah pernah scan
             $pesan_sukses = "Pemberitahuan: Instansi " . $data['nama_instansi_tamu'] . " sebelumnya sudah melakukan scan kedatangan.";
+            // Tetap berikan opsi cetak kartu jika kartu hilang
+            $redirect_url = "kartu_tamu.php?kode=" . $kode_booking;
         } else {
-            // Update status kegiatan menjadi selesai dan catat waktu kehadiran
-            // Jika kolom status_qr belum ada, query ini tetap aman memperbarui status_kegiatan
-            $update = mysqli_query($koneksi, "UPDATE kunjungan SET status_kegiatan = 'selesai' WHERE kode_booking = '$kode_booking'");
+            // Update status kehadiran/kegiatan tamu (Menambahkan waktu_scan agar sesuai revisi log kehadiran)
+            $update = mysqli_query($koneksi, "UPDATE kunjungan SET status_kegiatan = 'selesai', status_kehadiran = 'hadir', waktu_scan = NOW() WHERE kode_booking = '$kode_booking'");
             
             if ($update) {
                 $pesan_sukses = "Sukses! Kedatangan Instansi <strong>" . $data['nama_instansi_tamu'] . "</strong> berhasil dicatat.";
+                // Siapkan URL untuk redirect ke kartu tamu
+                $redirect_url = "kartu_tamu.php?kode=" . $kode_booking;
             } else {
                 $pesan_gagal = "Terjadi kesalahan internal saat memperbarui database.";
             }
@@ -69,61 +74,77 @@ if (isset($_POST['kode_booking'])) {
 
 <div class="row">
     <div class="col-xl-6 col-md-12 mb-4">
-        <div class="card h-100">
-            <div class="card-header">
-                <h5>Kamera Pemindai E-Ticket</h5>
+        <div class="card h-100 border-dark shadow-sm">
+            <div class="card-header bg-white border-bottom border-dark">
+                <h5 class="mb-0">Kamera Pemindai E-Ticket</h5>
             </div>
             <div class="card-body d-flex flex-column align-items-center justify-content-center">
                 
                 <div id="reader" class="border rounded bg-dark position-relative shadow-inner" style="width: 100%; max-width: 450px; min-height: 300px; overflow: hidden;"></div>
                 
                 <div class="text-muted small mt-3 text-center">
-                    <i class="ti ti-info-circle me-1 text-primary"></i> Posisikan barcode kertas atau layar HP tamu tepat di tengah kotak kamera.
+                    <i class="ti ti-info-circle me-1 text-primary"></i> Posisikan barcode E-Ticket tamu tepat di tengah kotak kamera.
                 </div>
             </div>
         </div>
     </div>
 
     <div class="col-xl-6 col-md-12 mb-4">
-        <div class="card h-100">
-            <div class="card-header">
-                <h5>Log &amp; Input Manual Kehadiran</h5>
+        <div class="card h-100 border-dark shadow-sm">
+            <div class="card-header bg-white border-bottom border-dark">
+                <h5 class="mb-0">Log &amp; Input Kehadiran</h5>
             </div>
             <div class="card-body">
                 
                 <?php if (!empty($pesan_sukses)): ?>
-                    <div class="alert alert-success d-flex align-items-center" role="alert">
-                        <i class="ti ti-circle-check me-2 f-20"></i>
-                        <div><?= $pesan_sukses; ?></div>
+                    <div class="alert alert-success border-success" role="alert">
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="ti ti-circle-check me-2 f-24"></i>
+                            <div><?= $pesan_sukses; ?></div>
+                        </div>
+                        
+                        <?php if (!empty($redirect_url)): ?>
+                        <hr class="border-success opacity-50">
+                        <div class="d-flex justify-content-between align-items-center mt-2">
+                            <small class="text-dark"><i>Mengalihkan ke halaman cetak kartu tamu...</i></small>
+                            <a href="<?= $redirect_url ?>" class="btn btn-dark btn-sm">
+                                <i class="ti ti-id me-1"></i> Cetak Sekarang
+                            </a>
+                        </div>
+                        <script>
+                            setTimeout(function(){
+                                window.location.href = '<?= $redirect_url ?>';
+                            }, 2500);
+                        </script>
+                        <?php endif; ?>
                     </div>
                 <?php endif; ?>
 
                 <?php if (!empty($pesan_gagal)): ?>
-                    <div class="alert alert-danger d-flex align-items-center" role="alert">
-                        <i class="ti ti-circle-x me-2 f-20"></i>
-                        <div><?= $pesg_gagal = $pesan_gagal; ?></div>
-                    </div>
+                    <div class="alert alert-danger d-flex align-items-center border-danger" role="alert">
+                        <i class="ti ti-circle-x me-2 f-24"></i>
+                        <div><?= $pesan_gagal; ?></div> </div>
                 <?php endif; ?>
 
-                <form id="form-qr" method="POST" action="" class="mt-2">
+                <form id="form-qr" method="POST" action="" class="mt-3">
                     <div class="mb-3">
                         <label class="form-label fw-bold text-dark">Kode Booking / Nomor Tiket</label>
                         <div class="input-group">
-                            <span class="input-group-text bg-light"><i class="ti ti-qrcode"></i></span>
-                            <input type="text" id="kode_booking_field" name="kode_booking" class="form-control form-control-lg font-monospace" placeholder="Contoh: REQ-2025-A001" required>
+                            <span class="input-group-text bg-light border-dark"><i class="ti ti-qrcode"></i></span>
+                            <input type="text" id="kode_booking_field" name="kode_booking" class="form-control form-control-lg font-monospace border-dark" placeholder="Contoh: REQ-2025-A001" required>
                         </div>
                         <div class="form-text text-muted">Petugas dapat mengetik kode manual jika kamera bermasalah.</div>
                     </div>
-                    <button type="submit" class="btn btn-primary w-100 py-2 fw-bold"><i class="ti ti-check me-1"></i>Konfirmasi Kehadiran Tamu</button>
+                    <button type="submit" class="btn btn-dark w-100 py-2 fw-bold"><i class="ti ti-check me-1"></i> Konfirmasi Kehadiran</button>
                 </form>
 
                 <hr class="my-4 border-dashed">
                 
-                <h6 class="fw-bold text-dark mb-2">Petunjuk Operasional Front Office:</h6>
+                <h6 class="fw-bold text-dark mb-2">Petunjuk Operasional Keamanan:</h6>
                 <ol class="text-muted small ps-3" style="line-height: 1.8;">
-                    <li>Izinkan peramban/browser mengakses perangkat kamera laptop/webcam.</li>
+                    <li>Izinkan peramban mengakses perangkat kamera laptop/webcam.</li>
                     <li>Arahkan QR Code E-Ticket rombongan tamu ke depan lensa kamera.</li>
-                    <li>Sistem otomatis membaca kode, mengisi form, dan mensubmit data tanpa klik tombol apa pun.</li>
+                    <li>Sistem otomatis memverifikasi dan <b>menerbitkan Kartu Tamu Sementara</b>.</li>
                 </ol>
             </div>
         </div>
@@ -143,10 +164,10 @@ function onScanSuccess(decodedText, decodedResult) {
 }
 
 function onScanFailure(error) {
-    // Kita biarkan kosong agar konsol browser tidak penuh log error saat mencari kecocokan gambar QR
+    // Diabaikan agar konsol tidak penuh
 }
 
-// Konfigurasi area kotak bidik kamera boks pemindai
+// Konfigurasi area kotak bidik kamera
 let html5QrcodeScanner = new Html5QrcodeScanner(
     "reader", { fps: 15, qrbox: { width: 230, height: 230 } }, /* verbose= */ false
 );
@@ -155,23 +176,23 @@ html5QrcodeScanner.render(onScanSuccess, onScanFailure);
 
 <style>
 .border-dashed { border-style: dashed !important; border-width: 1px !important; border-color: #cbd5e1 !important; }
-#reader video { width: 100% !important; height: 100% !important; object-fit: cover !important; }
+#reader video { width: 100% !important; height: 100% !important; object-fit: cover !important; border-radius: 8px; }
 /* Merapikan styling tombol bawaan library agar senada dengan bootstrap */
 #reader button {
     display: inline-block;
-    font-weight: 400;
-    line-height: 1.5;
-    color: #212529;
-    text-align: center;
-    text-decoration: none;
-    vertical-align: middle;
+    font-weight: 500;
+    color: #fff;
+    background-color: #212529;
+    border: 1px solid #212529;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+    border-radius: 0.25rem;
+    margin: 10px 5px;
     cursor: pointer;
-    background-color: #f8f9fa;
-    border: 1px solid #ced4da;
-    padding: .25rem .5rem;
-    font-size: .875rem;
-    border-radius: .25rem;
-    margin: 5px;
+    transition: 0.2s;
+}
+#reader button:hover {
+    background-color: #343a40;
 }
 </style>
 
