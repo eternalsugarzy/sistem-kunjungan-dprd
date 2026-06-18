@@ -22,8 +22,18 @@ $is_mockup = true;
 $d = null;
 
 if (!empty($id_kunjungan) && isset($koneksi)) {
-    // Query dasar yang aman tanpa JOIN tabel yang tidak ada
-    $query = mysqli_query($koneksi, "SELECT * FROM kunjungan WHERE id_kunjungan = '$id_kunjungan'");
+    // REPARASI QUERY: Melakukan LEFT JOIN untuk menarik nama_ruangan dan nama_pj secara dinamis dari DB
+    $query = mysqli_query($koneksi, "
+        SELECT k.*, 
+               r.nama_ruangan, 
+               p.nama_pj,
+               IFNULL(kat.nama_kategori, 'Umum') as nama_kategori_db
+        FROM kunjungan k
+        LEFT JOIN ruangan r ON k.id_ruangan = r.id_ruangan
+        LEFT JOIN penanggung_jawab p ON k.id_pj = p.id_pj
+        LEFT JOIN kategori_kunjungan kat ON k.id_kategori = kat.id_kategori
+        WHERE k.id_kunjungan = '$id_kunjungan'
+    ");
     
     if ($query && mysqli_num_rows($query) > 0) {
         $d = mysqli_fetch_assoc($query);
@@ -32,7 +42,7 @@ if (!empty($id_kunjungan) && isset($koneksi)) {
 }
 
 // ==========================================
-// SOLUSI AMAN: Validasi Null / Fallback Mock Data (Anti-Error)
+// VALIDASI DATA / FALLBACK MOCK DATA (ANTI-ERROR)
 // ==========================================
 $kode_booking = ($d && isset($d['kode_booking'])) ? $d['kode_booking'] : 'REQ-2025-A001';
 $instansi     = ($d && isset($d['nama_instansi_tamu'])) ? $d['nama_instansi_tamu'] : 'DPRD Kab. Tanah Laut';
@@ -43,17 +53,18 @@ $email        = ($d && isset($d['email_pemohon'])) ? $d['email_pemohon'] : 'dprd
 $tujuan       = ($d && isset($d['materi_kunjungan'])) ? $d['materi_kunjungan'] : 'Studi Tiru Perda Wisata';
 $status       = ($d && isset($d['status_kegiatan'])) ? strtolower($d['status_kegiatan']) : 'selesai';
 
+// Ruangan dan Penanggung Jawab Dinamis (Murni dari relasi database)
+$ruangan      = ($d && !empty($d['nama_ruangan'])) ? $d['nama_ruangan'] : '<span class="text-muted font-italic">Belum Ditentukan (Pending)</span>';
+$pj           = ($d && !empty($d['nama_pj'])) ? $d['nama_pj'] : '<span class="text-muted font-italic">Belum Ditentukan (Pending)</span>';
+
 // ==========================================
-// LOGIKA PEMBUATAN & PENYIMPANAN QR CODE OTOMATIS KE DATABASE
+// LOGIKA PEMBUATAN & PENYIMPANAN QR CODE
 // ==========================================
 $qr_code_path = ($d && isset($d['qr_code_path'])) ? $d['qr_code_path'] : '';
 $qr_api_url = "https://api.qrserver.com/v1/create-qr-code/?size=130x130&data=" . urlencode($kode_booking);
 
-// Jika QR Code belum ada di database, download dari API dan simpan ke folder lokal
 if (empty($qr_code_path) && $is_mockup == false) {
     $folder_qr = "../uploads/qr/";
-    
-    // Buat folder jika belum ada
     if (!file_exists($folder_qr)) {
         mkdir($folder_qr, 0777, true);
     }
@@ -61,37 +72,33 @@ if (empty($qr_code_path) && $is_mockup == false) {
     $nama_file_qr = "QR_" . $kode_booking . ".png";
     $path_simpan_lokal = $folder_qr . $nama_file_qr;
     
-    // Ambil gambar dari API
     $gambar_qr = @file_get_contents($qr_api_url);
     if ($gambar_qr !== false) {
-        // Simpan gambar ke folder
         file_put_contents($path_simpan_lokal, $gambar_qr);
-        
-        // Simpan path ke database
         $path_db = "uploads/qr/" . $nama_file_qr;
         mysqli_query($koneksi, "UPDATE kunjungan SET qr_code_path = '$path_db' WHERE id_kunjungan = '$id_kunjungan'");
         
         $qr_code_path = $path_db;
-        $qr_image_src = "../" . $path_db; // Gunakan ../ karena ini di dalam folder admin/
+        $qr_image_src = "../" . $path_db;
     } else {
-        $qr_image_src = $qr_api_url; // Fallback jika gagal download
+        $qr_image_src = $qr_api_url;
     }
 } else if (!empty($qr_code_path)) {
-    // Jika sudah ada di database, panggil gambar lokalnya
     $qr_image_src = "../" . $qr_code_path;
 } else {
-    $qr_image_src = $qr_api_url; // Fallback mockup
+    $qr_image_src = $qr_api_url;
 }
 
-// Logika penentu kategori otomatis berdasarkan isi teks materi permohonan
-$materi_cek = strtolower($tujuan);
-$kategori = 'Audiensi';
-if (strpos($materi_cek, 'tiru') !== false) $kategori = 'Studi Tiru';
-elseif (strpos($materi_cek, 'kerja') !== false) $kategori = 'Kunjungan Kerja';
-elseif (strpos($materi_cek, 'konsul') !== false) $kategori = 'Konsultasi';
-
-$ruangan      = ($d && isset($d['nama_ruangan'])) ? $d['nama_ruangan'] : 'Ruang Komisi 2';
-$pj           = ($d && isset($d['nama_pj'])) ? $d['nama_pj'] : 'H. Muh. Jaini, SE, MAP';
+// Logika penentu nama kategori (Gunakan dari tabel master jika ada, jika tidak lakukan fallback teks)
+if ($d && !empty($d['nama_kategori_db']) && $d['nama_kategori_db'] !== 'Umum') {
+    $kategori = $d['nama_kategori_db'];
+} else {
+    $materi_cek = strtolower($tujuan);
+    $kategori = 'Audiensi';
+    if (strpos($materi_cek, 'tiru') !== false) $kategori = 'Studi Tiru';
+    elseif (strpos($materi_cek, 'kerja') !== false) $kategori = 'Kunjungan Kerja';
+    elseif (strpos($materi_cek, 'konsul') !== false) $kategori = 'Konsultasi';
+}
 
 $tgl_format   = date('d F Y', strtotime($tgl_kunjungan));
 ?>
@@ -167,11 +174,11 @@ $tgl_format   = date('d F Y', strtotime($tgl_kunjungan));
                                     </tr>
                                     <tr>
                                         <td class="text-muted fw-normal">Ruangan</td>
-                                        <td>: <?= htmlspecialchars($ruangan); ?></td>
+                                        <td class="fw-medium text-dark">: <?= $ruangan; ?></td>
                                     </tr>
                                     <tr>
                                         <td class="text-muted fw-normal">Penanggung Jawab</td>
-                                        <td>: <?= htmlspecialchars($pj); ?></td>
+                                        <td class="fw-bold text-dark">: <?= $pj; ?></td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -181,7 +188,7 @@ $tgl_format   = date('d F Y', strtotime($tgl_kunjungan));
                             <h6 class="fw-bold mb-2 text-dark">Status QR Code:</h6>
                             <div class="p-3 rounded bg-light border border-dashed text-dark" style="font-size: 12px; line-height: 1.8;">
                                 <div class="text-success"><i class="ti ti-circle-check-filled me-1"></i> QR Code sukses dibuat oleh sistem admin.</div>
-                                <div class="text-success"><i class="ti ti-circle-check-filled me-1"></i> Path lokal tersimpan di DB: <strong><?= !empty($qr_code_path) ? $qr_code_path : 'Menunggu Generate...'; ?></strong></div>
+                                <div class="text-success"><i class="ti ti-circle-check-filled me-1"></i> Path lokal tersimpan di DB: <strong><?= !empty($qr_code_path) ? htmlspecialchars($qr_code_path) : 'Menunggu Generate...'; ?></strong></div>
                                 <?php if($status == 'selesai'): ?>
                                     <div class="text-success"><i class="ti ti-circle-check-filled me-1"></i> Kunjungan valid — QR telah berhasil dipindai di pintu front office pada <?= $tgl_format; ?> (<?= htmlspecialchars($waktu); ?> WITA)</div>
                                 <?php else: ?>
@@ -205,7 +212,7 @@ $tgl_format   = date('d F Y', strtotime($tgl_kunjungan));
                 <div class="mt-4 pt-4 border-top border-dashed">
                     <h6 class="fw-bold text-dark mb-3">Lampiran &amp; Cetak Dokumen Administrasi:</h6>
                     <div class="d-flex gap-2 flex-wrap">
-                        <a href="../uploads/<?= ($d && isset($d['file_surat_permohonan'])) ? $d['file_surat_permohonan'] : '#'; ?>" target="_blank" class="btn btn-sm btn-outline-secondary">
+                        <a href="../uploads/<?= ($d && isset($d['file_surat_permohonan'])) ? htmlspecialchars($d['file_surat_permohonan']) : '#'; ?>" target="_blank" class="btn btn-sm btn-outline-secondary">
                             <i class="ti ti-download me-1"></i>Lihat Surat Permohonan
                         </a>
                         <a href="cetak_surat_tte.php?id=<?= $id_kunjungan; ?>" target="_blank" class="btn btn-sm btn-outline-primary <?= ($status == 'pending') ? 'disabled opacity-50' : ''; ?>">
@@ -243,7 +250,7 @@ $tgl_format   = date('d F Y', strtotime($tgl_kunjungan));
 }
 @media (min-width: 768px) {
     .border-end-md {
-        border-end: 1px solid #e2e8f0 !important;
+        border-right: 1px solid #e2e8f0 !important;
     }
 }
 </style>
