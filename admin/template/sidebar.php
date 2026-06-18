@@ -85,12 +85,14 @@ if (isset($koneksi)) {
             <span class="pc-arrow"><i data-feather="chevron-right"></i></span>
           </a>
           <ul class="pc-submenu">
-            <li class="pc-item"><a class="pc-link" href="master_ruangan.php">Data Ruangan</a></li>
-            <li class="pc-item"><a class="pc-link" href="master_pj.php">Penanggung Jawab</a></li>
-            <?php if (isset($_SESSION['level']) && $_SESSION['level'] == 'admin'): ?>
-              <li class="pc-item"><a class="pc-link" href="manajemen_user.php">Manajemen Admin</a></li>
-            <?php endif; ?>
-          </ul>
+  <li class="pc-item"><a class="pc-link" href="master_ruangan.php">Data Ruangan</a></li>
+  <li class="pc-item"><a class="pc-link" href="master_pj.php">Penanggung Jawab</a></li>
+  <!-- TAMBAHAN MENU KATEGORI BARU -->
+  <li class="pc-item"><a class="pc-link" href="master_kategori.php">Kategori Kunjungan</a></li>
+  <?php if (isset($_SESSION['level']) && $_SESSION['level'] == 'admin'): ?>
+    <li class="pc-item"><a class="pc-link" href="manajemen_user.php">Manajemen Admin</a></li>
+  <?php endif; ?>
+</ul>
         </li>
 
         <li class="pc-item pc-caption">
