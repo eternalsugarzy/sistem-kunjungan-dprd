@@ -1,3 +1,36 @@
+<?php
+// PERBAIKAN: Tambahkan '../' agar sistem mencari koneksi.php di luar folder admin/
+include '../koneksi.php';
+
+$kode_booking = isset($_GET['kode']) ? mysqli_real_escape_string($koneksi, $_GET['kode']) : '';
+$data = null;
+
+if (!empty($kode_booking)) {
+    // Ambil data kunjungan dan gabungkan dengan tabel ruangan
+    $query = mysqli_query($koneksi, "SELECT k.*, r.nama_ruangan FROM kunjungan k 
+                                     LEFT JOIN ruangan r ON k.id_ruangan = r.id_ruangan 
+                                     WHERE k.kode_booking = '$kode_booking'");
+    if ($query && mysqli_num_rows($query) > 0) {
+        $data = mysqli_fetch_assoc($query);
+    }
+}
+
+// Jika data tidak ditemukan, alihkan kembali ke scanner
+if (!$data) {
+    echo "<script>alert('Kode Booking tidak ditemukan!'); window.location.href='scan_qr.php';</script>";
+    exit;
+}
+
+// Format variabel untuk ditampilkan
+$instansi = $data['nama_instansi_tamu'];
+$tanggal = date('d M Y', strtotime($data['tgl_kunjungan']));
+$ruangan = !empty($data['nama_ruangan']) ? $data['nama_ruangan'] : 'Belum ditentukan';
+$batas_waktu = !empty($data['batas_waktu_kunjungan']) ? date('H:i', strtotime($data['batas_waktu_kunjungan'])) . " WITA" : '15:00 WITA';
+
+// PERBAIKAN: Tambahkan '../' pada path QR Code dan Assets karena file ini di dalam folder admin/
+$qr_path = !empty($data['qr_code_path']) ? '../' . $data['qr_code_path'] : '../assets/images/sample-qr.png';
+?>
+
 <!doctype html>
 <html lang="id">
 <head>
@@ -5,11 +38,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     
-    <link rel="icon" href="assets/images/logo.png" type="image/x-icon" />
+    <link rel="icon" href="../assets/images/logo.png" type="image/x-icon" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" />
-    <link rel="stylesheet" href="assets/fonts/tabler-icons.min.css" />
-    <link rel="stylesheet" href="assets/css/style.css" id="main-style-link" />
-    <link rel="stylesheet" href="assets/css/style-preset.css" />
+    <link rel="stylesheet" href="../assets/fonts/tabler-icons.min.css" />
+    <link rel="stylesheet" href="../assets/css/style.css" id="main-style-link" />
+    <link rel="stylesheet" href="../assets/css/style-preset.css" />
     
     <style>
         /* Desain ID Card */
@@ -36,7 +69,6 @@
         .qr-placeholder {
             width: 150px;
             height: 150px;
-            border: 2px dashed #ccc;
             margin: 0 auto 15px auto;
             display: flex;
             align-items: center;
@@ -57,7 +89,7 @@
     <div class="container py-5">
         <div class="text-center mb-4 no-print">
             <h3 class="fw-bold">Penerbitan Kartu Tamu</h3>
-            <p class="text-muted">Cetak atau tunjukkan kartu ini selama berada di area instansi.</p>
+            <p class="text-muted">Cetak atau kalungkan kartu ini selama berada di area instansi.</p>
         </div>
 
         <div class="id-card">
@@ -66,24 +98,25 @@
                 <small>DPRD Kota Banjarmasin</small>
             </div>
             <div class="id-card-body">
-                <div class="qr-placeholder">
-                    <img src="assets/images/sample-qr.png" alt="QR Code" style="max-width: 100%; height: auto; display:none;" id="qr-img">
-                    <i class="ti ti-qrcode text-muted" style="font-size: 4rem;"></i>
+                
+                <div class="qr-placeholder border border-dark rounded bg-light">
+                    <img src="<?= $qr_path; ?>" alt="QR Code" style="width: 100%; height: 100%; object-fit: contain;">
                 </div>
                 
-                <h5 class="fw-bold mb-0">DPRD Kab. Tanah Laut</h5> <p class="text-muted mb-2">Kode: <strong>REQ-2025-A001</strong></p>
+                <h5 class="fw-bold mb-0 text-uppercase"><?= $instansi; ?></h5>
+                <p class="text-muted mb-2">Kode: <strong><?= $kode_booking; ?></strong></p>
                 
                 <hr class="border-dashed my-2">
                 
                 <div class="row text-start mt-3" style="font-size: 0.9rem;">
                     <div class="col-5 text-muted fw-bold">Tanggal</div>
-                    <div class="col-7">: 10 Des 2025</div>
+                    <div class="col-7">: <?= $tanggal; ?></div>
                     
                     <div class="col-5 text-muted fw-bold">Tujuan</div>
-                    <div class="col-7">: Ruang Komisi 2</div>
+                    <div class="col-7">: <?= $ruangan; ?></div>
                     
                     <div class="col-5 text-muted fw-bold">Batas Waktu</div>
-                    <div class="col-7 text-danger fw-bold">: 15:00 WITA</div>
+                    <div class="col-7 text-danger fw-bold">: <?= $batas_waktu; ?></div>
                 </div>
             </div>
             <div class="bg-dark text-white text-center py-2" style="font-size: 0.75rem;">
@@ -91,13 +124,13 @@
             </div>
         </div>
         <div class="text-center mt-4 no-print d-flex justify-content-center gap-2">
-            <a href="scan_qr.php" class="btn btn-outline-dark">[ Kembali ]</a>
+            <a href="scan_qr.php" class="btn btn-outline-dark">[ Kembali ke Scanner ]</a>
             <button onclick="window.print()" class="btn btn-dark">
                 <i class="ti ti-printer me-1"></i> [ Cetak Kartu ]
             </button>
         </div>
     </div>
 
-    <script src="assets/js/plugins/bootstrap.min.js"></script>
+    <script src="../assets/js/plugins/bootstrap.min.js"></script>
 </body>
 </html>
