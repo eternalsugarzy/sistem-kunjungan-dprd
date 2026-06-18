@@ -135,8 +135,18 @@ if (isset($_POST['btn_cek']) || isset($_GET['kode'])) {
                             <p class="text-muted mb-3">Tunjukkan E-Ticket QR Code ini kepada petugas Keamanan saat kedatangan.</p>
                             
                             <div class="qr-ticket-box mb-3 bg-light">
-                                <?php $qr_path = !empty($data['qr_code_path']) ? $data['qr_code_path'] : 'assets/images/sample-qr.png'; ?>
-                                <img src="<?= $qr_path ?>" alt="QR Code E-Ticket" style="width: 150px; height: 150px;">
+                                <?php 
+                                    // PERBAIKAN: Logika Cek QR Code Lokal vs API
+                                    $qr_path = "";
+                                    if (!empty($data['qr_code_path']) && file_exists($data['qr_code_path'])) {
+                                        // Jika file lokal ada, pakai file lokal
+                                        $qr_path = $data['qr_code_path'];
+                                    } else {
+                                        // Jika file lokal belum ada, generate langsung dari API
+                                        $qr_path = "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=" . urlencode($data['kode_booking']);
+                                    }
+                                ?>
+                                <img src="<?= $qr_path ?>" alt="QR Code E-Ticket" style="width: 150px; height: 150px; object-fit: contain;">
                                 <div class="mt-2 fw-bold"><?= $data['kode_booking']; ?></div>
                             </div>
                             <br>

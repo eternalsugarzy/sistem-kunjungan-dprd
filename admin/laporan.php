@@ -9,7 +9,7 @@ include 'template/sidebar.php';
     <div class="row align-items-center">
       <div class="col-md-12">
         <div class="page-header-title">
-          <h5 class="m-b-10">Cetak Laporan</h5>
+          <h5 class="m-b-10">Cetak Laporan & Dokumen</h5>
         </div>
         <ul class="breadcrumb">
           <li class="breadcrumb-item"><a href="dashboard.php">Home</a></li>
@@ -21,17 +21,19 @@ include 'template/sidebar.php';
 </div>
 
 <div class="row">
-  <div class="col-md-6">
-    <div class="card shadow">
-      <div class="card-header bg-primary text-white">
-        <h5 class="mb-0 text-white"><i class="ti ti-printer me-2"></i>Filter Laporan Kunjungan</h5>
+  <div class="col-md-6 mb-4">
+    <div class="card shadow h-100 border-dark">
+      <div class="card-header bg-dark text-white">
+        <h5 class="mb-0 text-white"><i class="ti ti-calendar-event me-2"></i>Laporan Kunjungan (Bulanan)</h5>
       </div>
       <div class="card-body">
+        <p class="text-muted small mb-4">Pilih periode bulan dan tahun untuk mencetak rekapitulasi data tamu dan jadwal kunjungan kerja.</p>
+        
         <form action="cetak_laporan.php" method="GET" target="_blank">
             
             <div class="mb-3">
                 <label class="form-label fw-bold">Pilih Bulan</label>
-                <select name="bulan" class="form-select" required>
+                <select name="bulan" class="form-select border-dark" required>
                     <option value="">-- Pilih Bulan --</option>
                     <option value="01">Januari</option>
                     <option value="02">Februari</option>
@@ -50,19 +52,21 @@ include 'template/sidebar.php';
 
             <div class="mb-3">
                 <label class="form-label fw-bold">Pilih Tahun</label>
-                <select name="tahun" class="form-select" required>
+                <select name="tahun" class="form-select border-dark" required>
                     <?php
                     $tahun_sekarang = date('Y');
                     for($i = 2024; $i <= $tahun_sekarang + 1; $i++){
-                        echo "<option value='$i'>$i</option>";
+                        // Auto-select tahun saat ini
+                        $selected = ($i == $tahun_sekarang) ? 'selected' : '';
+                        echo "<option value='$i' $selected>$i</option>";
                     }
                     ?>
                 </select>
             </div>
 
             <div class="d-grid mt-4">
-                <button type="submit" class="btn btn-primary btn-lg">
-                    <i class="ti ti-printer me-2"></i> Cetak Laporan
+                <button type="submit" class="btn btn-dark btn-lg">
+                    <i class="ti ti-printer me-2"></i> Cetak Rekap Kunjungan
                 </button>
             </div>
 
@@ -71,12 +75,52 @@ include 'template/sidebar.php';
     </div>
   </div>
 
-  <div class="col-md-6">
-      <div class="alert alert-info">
-          <h5><i class="ti ti-info-circle me-2"></i>Informasi</h5>
-          <p>Fitur ini digunakan untuk mencetak rekapitulasi data kunjungan per bulan sebagai laporan pertanggungjawaban.</p>
-          <hr>
-          <p class="mb-0">Pastikan data kunjungan sudah diverifikasi dan diselesaikan agar masuk dalam laporan.</p>
+  <div class="col-md-6 mb-4">
+    <div class="card shadow h-100 border-dark">
+      <div class="card-header bg-dark text-white">
+        <h5 class="mb-0 text-white"><i class="ti ti-files me-2"></i>Laporan Master & Statistik</h5>
+      </div>
+      <div class="card-body">
+         <p class="text-muted small mb-4">Pilih jenis dokumen master data atau statistik dashboard yang ingin Anda cetak secara keseluruhan:</p>
+         
+         <div class="d-grid gap-3">
+             <a href="cetak_ruangan.php" target="_blank" class="btn btn-outline-dark d-flex justify-content-between align-items-center p-3 text-start">
+                 <div>
+                     <h6 class="mb-1 fw-bold">Cetak Data Ruangan</h6>
+                     <small class="text-muted">Daftar ruangan & kapasitas di DPRD</small>
+                 </div>
+                 <i class="ti ti-door f-24"></i>
+             </a>
+
+             <a href="cetak_pejabat.php" target="_blank" class="btn btn-outline-dark d-flex justify-content-between align-items-center p-3 text-start">
+                 <div>
+                     <h6 class="mb-1 fw-bold">Cetak Daftar Pejabat Penerima Tamu</h6>
+                     <small class="text-muted">Daftar penanggung jawab kunjungan (Tabel Pejabat)</small>
+                 </div>
+                 <i class="ti ti-users f-24"></i>
+             </a>
+
+             <a href="cetak_statistik.php" target="_blank" class="btn btn-outline-dark d-flex justify-content-between align-items-center p-3 text-start">
+                 <div>
+                     <h6 class="mb-1 fw-bold">Cetak Statistik Dashboard & Kepuasan</h6>
+                     <small class="text-muted">Laporan statistik grafik dan hasil feedback tamu</small>
+                 </div>
+                 <i class="ti ti-chart-bar f-24"></i>
+             </a>
+         </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-md-12">
+      <div class="alert alert-secondary border-dark d-flex align-items-center shadow-sm">
+          <i class="ti ti-info-circle f-24 me-3"></i>
+          <div>
+              <h6 class="mb-1 fw-bold">Informasi Pencetakan (Smart Guest)</h6>
+              <p class="mb-0 small">Fitur ini digunakan untuk mencetak berbagai rekapitulasi data sebagai laporan pertanggungjawaban. Pastikan perangkat Anda sudah terhubung dengan printer, atau gunakan fitur <b>"Save as PDF"</b> (Simpan sebagai PDF) pada menu <i>Print Browser</i> Anda.</p>
+          </div>
       </div>
   </div>
 </div>

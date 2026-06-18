@@ -61,6 +61,12 @@ if (isset($koneksi)) {
             <span class="pc-mtext">Scan QR Kedatangan</span>
           </a>
         </li>
+        <li class="pc-item <?= ($page == 'scan_qr') ? 'active' : '' ?>">
+          <a href="scan_qr_checkout.php" class="pc-link">
+            <span class="pc-micon"><i class="ti ti-qrcode"></i></span>
+            <span class="pc-mtext">Scan QR Check-Out</span>
+          </a>
+        </li>
         <li class="pc-item <?= ($page == 'buku_tamu') ? 'active' : '' ?>">
           <a href="buku_tamu.php" class="pc-link">
             <span class="pc-micon"><i class="ti ti-book"></i></span>
@@ -69,12 +75,7 @@ if (isset($koneksi)) {
         </li>
 
        
-        <li class="pc-item <?= ($page == 'input_spt') ? 'active' : '' ?>">
-          <a href="input_spt.php" class="pc-link">
-            <span class="pc-micon"><i class="ti ti-file-certificate"></i></span>
-            <span class="pc-mtext">Input SPT</span>
-          </a>
-        </li>
+        
         <li class="pc-item pc-caption">
           <label>Data Master</label>
           <i class="ti ti-apps"></i>
