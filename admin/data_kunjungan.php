@@ -68,7 +68,7 @@ if (isset($koneksi)) {
     <div class="card">
       <div class="card-header d-flex justify-content-between align-items-center">
         <h5>Arsip Data Kunjungan</h5>
-        <small class="text-danger">*Kolom "Kategori" dan "Status QR" = penambahan baru</small>
+        <small class="text-danger">*Kategori dinamis terhubung ke tabel master kategori_kunjungan</small>
       </div>
       <div class="card-body">
 
@@ -80,15 +80,6 @@ if (isset($koneksi)) {
               <option value="dijadwalkan">Dijadwalkan</option>
               <option value="selesai">Selesai</option>
               <option value="batal">Batal</option>
-            </select>
-          </div>
-          <div class="col-auto">
-            <select name="kategori" class="form-select form-select-sm" style="min-width: 150px;">
-              <option value="">-- Semua Kategori --</option>
-              <option value="Kunjungan Kerja">Kunjungan Kerja</option>
-              <option value="Audiensi">Audiensi</option>
-              <option value="Studi Tiru">Studi Tiru</option>
-              <option value="Konsultasi">Konsultasi</option>
             </select>
           </div>
           <div class="col-auto">
@@ -107,140 +98,101 @@ if (isset($koneksi)) {
                 <th width="5%">No</th>
                 <th>Kode &amp; Tgl</th>
                 <th>Instansi</th>
-                <th>Kategori <span class="badge bg-danger style-badge">baru</span></th>
+                <th>Kategori</th>
                 <th>Status</th>
-                <th>Status QR <span class="badge bg-danger style-badge">baru</span></th>
+                <th>Status QR</th>
                 <th class="text-center" width="18%">Aksi</th>
               </tr>
             </thead>
             <tbody>
               <?php
               $no = 1;
-              $has_real_data = false;
+              $any_data = false;
 
               if (isset($koneksi)) {
-                // Jalankan query dasar yang 100% aman tanpa JOIN yang berpotensi crash
-                $query = "SELECT * FROM kunjungan";
+                // UPDATE QUERY: Melakukan LEFT JOIN ke tabel kategori_kunjungan yang baru
+                $query = "SELECT kunjungan.*, IFNULL(kategori_kunjungan.nama_kategori, 'Umum') as nama_kategori 
+                          FROM kunjungan 
+                          LEFT JOIN kategori_kunjungan ON kunjungan.id_kategori = kategori_kunjungan.id_kategori";
 
                 $where_clauses = [];
                 if (!empty($_GET['status'])) {
                   $st = mysqli_real_escape_string($koneksi, $_GET['status']);
-                  $where_clauses[] = "status_kegiatan='$st'";
+                  $where_clauses[] = "kunjungan.status_kegiatan='$st'";
                 }
                 if (!empty($_GET['cari'])) {
                   $cr = mysqli_real_escape_string($koneksi, $_GET['cari']);
-                  $where_clauses[] = "nama_instansi_tamu LIKE '%$cr%'";
+                  $where_clauses[] = "kunjungan.nama_instansi_tamu LIKE '%$cr%'";
                 }
 
                 if (count($where_clauses) > 0) {
                   $query .= " WHERE " . implode(' AND ', $where_clauses);
                 }
-                $query .= " ORDER BY id_kunjungan DESC";
+                $query .= " ORDER BY kunjungan.id_kunjungan DESC";
 
                 $result = mysqli_query($koneksi, $query);
 
                 if ($result && mysqli_num_rows($result) > 0) {
-                  $has_real_data = true;
+                  $any_data = true;
                   while ($d = mysqli_fetch_array($result)) {
                     $status = strtolower($d['status_kegiatan'] ?? 'pending');
                     $instansi = $d['nama_instansi_tamu'] ?? 'Instansi Tidak Diketahui';
-                    $materi = $d['materi_kunjungan'] ?? 'Kunjungan';
+                    
+                    // Kategori mengambil dari hasil JOIN relasi tabel database baru
+                    $kategori_text = $d['nama_kategori'];
 
-                    // Fallback Kategori & QR Statis Berdasarkan Status agar UI Sesuai Gambar Mockup
-                    $kategori_text = "Audiensi";
-                    if (strpos(strtolower($materi), 'tiru') !== false)
-                      $kategori_text = "Studi Tiru";
-                    if (strpos(strtolower($materi), 'kerja') !== false)
-                      $kategori_text = "Kunjungan Kerja";
-                    if (strpos(strtolower($materi), 'konsul') !== false)
-                      $kategori_text = "Konsultasi";
-
-                    if ($status == 'selesai')
+                    // Pengaturan status QR otomatis berbasis logika backend
+                    if ($status == 'selesai') {
                       $status_qr_html = '<span class="badge bg-light-success text-success border border-success px-2 py-1">Sudah Scan</span>';
-                    elseif ($status == 'dijadwalkan')
+                    } elseif ($status == 'dijadwalkan') {
                       $status_qr_html = '<span class="badge bg-light-warning text-warning border border-warning px-2 py-1">Belum Scan</span>';
-                    else
+                    } else {
                       $status_qr_html = '<small class="text-muted font-italic">Belum Generate</small>';
+                    }
                     ?>
                     <tr>
                       <td><?= $no++; ?></td>
                       <td>
-                        <span class="fw-bold text-primary"
-                          style="font-size:12px;"><?= $d['kode_booking'] ?? 'REQ-' . date('Y') . '-00' . $no; ?></span><br>
-                        <small class="text-muted"><i
-                            class="ti ti-calendar me-1"></i><?= isset($d['tgl_kunjungan']) ? date('d-m-Y', strtotime($d['tgl_kunjungan'])) : date('d-m-Y'); ?></small>
+                        <span class="fw-bold text-primary" style="font-size:12px;"><?= htmlspecialchars($d['kode_booking']); ?></span><br>
+                        <small class="text-muted"><i class="ti ti-calendar me-1"></i><?= date('d-m-Y', strtotime($d['tgl_kunjungan'])); ?></small>
                       </td>
                       <td>
                         <h6 class="mb-0 fw-bold"><?= htmlspecialchars($instansi); ?></h6>
-                        <small class="text-muted"><em><?= htmlspecialchars($materi); ?></em></small>
+                        <small class="text-muted"><em><?= htmlspecialchars($d['materi_kunjungan'] ?? ''); ?></em></small>
                       </td>
-                      <td><span class="text-dark fw-normal" style="font-size: 13px;"><?= $kategori_text; ?></span></td>
+                      <td>
+                        <span class="badge bg-light-secondary text-dark border" style="font-size: 11px;"><?= htmlspecialchars($kategori_text); ?></span>
+                      </td>
                       <td>
                         <?php
-                        if ($status == 'pending')
-                          echo '<span class="badge bg-warning">Pending</span>';
-                        elseif ($status == 'dijadwalkan')
-                          echo '<span class="badge bg-primary">Dijadwalkan</span>';
-                        elseif ($status == 'selesai')
-                          echo '<span class="badge bg-success">Selesai</span>';
-                        else
-                          echo '<span class="badge bg-danger">Batal</span>';
+                        if ($status == 'pending') echo '<span class="badge bg-warning">Pending</span>';
+                        elseif ($status == 'dijadwalkan') echo '<span class="badge bg-primary">Dijadwalkan</span>';
+                        elseif ($status == 'selesai') echo '<span class="badge bg-success">Selesai</span>';
+                        else echo '<span class="badge bg-danger">Batal</span>';
                         ?>
                       </td>
                       <td><?= $status_qr_html; ?></td>
                       <td class="text-center">
                         <div class="d-flex gap-1 justify-content-center">
-                          <a href="detail_kunjungan.php?id=<?= $d['id_kunjungan']; ?>"
-                            class="btn btn-light text-dark border btn-sm">
+                          <a href="detail_kunjungan.php?id=<?= $d['id_kunjungan']; ?>" class="btn btn-light text-dark border btn-sm">
                             <i class="ti ti-file-text me-1"></i>Detail
                           </a>
-                          <a href="input_spt.php?id=<?= $d['id_kunjungan']; ?>"
-                            class="btn btn-warning btn-sm <?= ($status == 'pending') ? 'disabled opacity-50' : ''; ?>"><i
-                              class="ti ti-file-description me-1"></i>SPT</a>
-                          <a href="data_kunjungan.php?aksi=hapus&id=<?= $d['id_kunjungan']; ?>" class="btn btn-danger btn-sm"
-                            onclick="return confirm('Hapus data?')"><i class="ti ti-trash"></i></a>
+                          <a href="input_spt.php?id=<?= $d['id_kunjungan']; ?>" class="btn btn-warning btn-sm <?= ($status == 'pending') ? 'disabled opacity-50' : ''; ?>">
+                            <i class="ti ti-file-description me-1"></i>SPT
+                          </a>
+                          <a href="data_kunjungan.php?aksi=hapus&id=<?= $d['id_kunjungan']; ?>" class="btn btn-danger btn-sm" onclick="return confirm('Hapus data?')">
+                            <i class="ti ti-trash"></i>
+                          </a>
                         </div>
                       </td>
                     </tr>
-                  <?php
+                    <?php
                   }
                 }
               }
 
-              // ================================================================
-              // FALLBACK DUMMY DATA JIKA DATABASE KOSONG ATAU CRASH (SESUAI GAMBAR)
-              // ================================================================
-              if (!$has_real_data) {
-                $mock_entries = [
-                  ['1', 'REQ-2025-A001', '10-12-2025', 'DPRD Kab. Tala', 'Studi Tiru', 'selesai', 'sudah scan'],
-                  ['2', 'REQ-2025-B002', '12-12-2025', 'Setwan Kab. Banjar', 'Konsultasi', 'dijadwalkan', 'belum scan'],
-                  ['3', 'REQ-2025-C003', '07-02-2025', 'BEM UNISKA MAB', 'Audiensi', 'pending', 'belum generate']
-                ];
-                foreach ($mock_entries as $m) {
-                  $st_badge = $m[5] == 'selesai' ? 'success' : ($m[5] == 'dijadwalkan' ? 'primary' : 'warning');
-
-                  if ($m[6] == 'sudah scan')
-                    $qr_badge = '<span class="badge bg-light-success text-success border border-success px-2 py-1">Sudah Scan</span>';
-                  elseif ($m[6] == 'belum scan')
-                    $qr_badge = '<span class="badge bg-light-warning text-warning border border-warning px-2 py-1">Belum Scan</span>';
-                  else
-                    $qr_badge = '<small class="text-muted font-italic">Belum Generate</small>';
-
-                  echo "<tr>
-                        <td>{$m[0]}</td>
-                        <td><span class='fw-bold text-primary' style='font-size:12px;'>{$m[1]}</span><br><small class='text-muted'>{$m[2]}</small></td>
-                        <td><h6 class='mb-0 fw-bold'>{$m[3]}</h6><small class='text-muted'><em>{$m[4]}</em></small></td>
-                        <td><span class='text-dark fw-normal' style='font-size: 13px;'>{$m[4]}</span></td>
-                        <td><span class='badge bg-{$st_badge}'>" . ucfirst($m[5]) . "</span></td>
-                        <td>{$qr_badge}</td>
-                        <td class='text-center'>
-                            <div class='d-flex gap-1 justify-content-center'>
-                                <button type='button' class='btn btn-light text-dark border btn-sm'><i class='ti ti-file-text me-1'></i>Detail</button>
-                                <a href='input_spt.php' class='btn btn-warning btn-sm " . ($m[5] == 'pending' ? 'disabled opacity-50' : '') . "'><i class='ti ti-file-description me-1'></i>SPT</a>
-                            </div>
-                        </td>
-                      </tr>";
-                }
+              if (!$any_data) {
+                echo '<tr><td colspan="7" class="text-center text-muted py-4">Tidak ada arsip data kunjungan yang tersimpan.</td></tr>';
               }
               ?>
             </tbody>
@@ -251,16 +203,6 @@ if (isset($koneksi)) {
     </div>
   </div>
 </div>
-
-<style>
-  .style-badge {
-    font-size: 8px !important;
-    font-weight: 400 !important;
-    background-color: #dc3545 !important;
-    margin-left: 2px;
-    vertical-align: middle;
-  }
-</style>
 
 <?php
 include 'template/footer.php';
