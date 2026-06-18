@@ -73,6 +73,13 @@ if (isset($koneksi)) {
             <span class="pc-mtext">Buku Tamu</span>
           </a>
         </li>
+        <!-- MENU BARU: FEEDBACK PENGUNJUNG -->
+<li class="pc-item <?= ($page == 'feedback') ? 'active' : ''; ?>">
+  <a href="data_feedback.php" class="pc-link">
+    <span class="pc-micon"><i class="ti ti-star"></i></span>
+    <span class="pc-mtext">Feedback Pengunjung</span>
+  </a>
+</li> 
 
        
         

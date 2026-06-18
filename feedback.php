@@ -1,32 +1,70 @@
 <?php
-include 'koneksi.php';
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
+include 'koneksi.php'; 
 
 $pesan_sukses = "";
 $pesan_error = "";
 
-// PROSES SAAT TOMBOL KIRIM DITEKAN (Untuk dikerjakan teman Back-End Anda)
+$id_kunjungan = isset($_GET['id']) ? intval($_GET['id']) : 1;
+
+// Ambil info kunjungan dari DB
+$instansi_tamu = "DPRD Kab. Tanah Laut";
+$kode_booking  = "REQ-2026-A001";
+$tgl_agenda    = date('d F Y');
+
+$q_info = mysqli_query($koneksi, "SELECT * FROM kunjungan WHERE id_kunjungan = '$id_kunjungan'");
+if ($q_info && mysqli_num_rows($q_info) > 0) {
+    $d_info = mysqli_fetch_assoc($q_info);
+    $instansi_tamu = $d_info['nama_instansi_tamu'];
+    $kode_booking  = $d_info['kode_booking'];
+    $tgl_agenda    = isset($d_info['tgl_kunjungan']) ? date('d F Y', strtotime($d_info['tgl_kunjungan'])) : date('d F Y');
+}
+
+// PROSES SIMPAN DATA (Kunci Nama Kolom Sesuai phpMyAdmin Kamu)
 if (isset($_POST['kirim_feedback'])) {
-    // Simulasi tangkap data untuk Back-End
-    $id_kunjungan = 1; // Contoh: Ini harusnya ditangkap dari URL/Session, misal $_GET['id']
-    $nama = mysqli_real_escape_string($koneksi, $_POST['nama_pemberi']);
-    $jabatan = mysqli_real_escape_string($koneksi, $_POST['jabatan_pemberi']);
-    $komentar = mysqli_real_escape_string($koneksi, $_POST['komentar_saran']);
     
-    // Checkbox anonim (jika dicentang nilainya 1, jika tidak 0)
     $is_anonymous = isset($_POST['is_anonymous']) ? 1 : 0;
+    $nama    = ($is_anonymous == 1) ? "Anonim" : mysqli_real_escape_string($koneksi, $_POST['nama_pemberi']);
+    $jabatan = mysqli_real_escape_string($koneksi, $_POST['jabatan_pemberi']);
+    $saran   = mysqli_real_escape_string($koneksi, $_POST['komentar_saran']);
     
-    // Tangkap nilai bintang (1 sampai 5)
-    $rating_pelayanan = isset($_POST['rating_pelayanan']) ? $_POST['rating_pelayanan'] : 0;
-    $rating_fasilitas = isset($_POST['rating_fasilitas']) ? $_POST['rating_fasilitas'] : 0;
-    $rating_waktu = isset($_POST['rating_ketepatan_waktu']) ? $_POST['rating_ketepatan_waktu'] : 0;
+    $rating_pelayanan = isset($_POST['rating_pelayanan']) ? intval($_POST['rating_pelayanan']) : 5;
+    $rating_fasilitas = isset($_POST['rating_fasilitas']) ? intval($_POST['rating_fasilitas']) : 5;
+    $rating_waktu     = isset($_POST['rating_ketepatan_waktu']) ? intval($_POST['rating_ketepatan_waktu']) : 5;
     
-    // Hitung rata-rata
+    // Hitung rata-rata eksak
     $rating_keseluruhan = ($rating_pelayanan + $rating_fasilitas + $rating_waktu) / 3;
 
-    // TODO: Teman Back-End Anda tinggal membuat query INSERT ke tabel 'feedback_kunjungan' di sini.
-    // ...
+    // Perintah INSERT mengunci nama kolom asli di database kamu (Anti-Null)
+    $query_insert = "INSERT INTO feedback_kunjungan (
+                        id_kunjungan, 
+                        nama_pemberi, 
+                        jabatan_pemberi, 
+                        rating_pelayanan, 
+                        rating_fasilitas, 
+                        rating_ketepatan_waktu, 
+                        rating_keseluruhan, 
+                        komentar_saran, 
+                        is_anonymous
+                    ) VALUES (
+                        '$id_kunjungan', 
+                        '$nama', 
+                        '$jabatan', 
+                        '$rating_pelayanan', 
+                        '$rating_fasilitas', 
+                        '$rating_waktu', 
+                        '$rating_keseluruhan', 
+                        '$saran', 
+                        '$is_anonymous'
+                    )";
     
-    $pesan_sukses = "Terima kasih! Feedback Anda sangat berarti bagi peningkatan pelayanan kami.";
+    if (mysqli_query($koneksi, $query_insert)) {
+        $pesan_sukses = "Terima kasih! Feedback Anda sangat berarti bagi peningkatan pelayanan kami.";
+    } else {
+        $pesan_error = "Gagal menyimpan feedback: " . mysqli_error($koneksi);
+    }
 }
 ?>
 
@@ -40,33 +78,31 @@ if (isset($_POST['kirim_feedback'])) {
     <link rel="icon" href="assets/images/logo.png" type="image/x-icon" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-    <link rel="stylesheet" href="assets/fonts/tabler-icons.min.css" />
     <link rel="stylesheet" href="assets/css/style.css" id="main-style-link" />
     <link rel="stylesheet" href="assets/css/style-preset.css" />
 
     <style>
-        /* --- CSS KHUSUS UNTUK STAR RATING --- */
         .rating-group {
             display: inline-flex;
-            flex-direction: row-reverse; /* Dibalik agar hover efek CSS bekerja dari kiri ke kanan */
+            flex-direction: row-reverse; 
             justify-content: flex-end;
         }
         .rating-group input {
-            display: none; /* Sembunyikan radio button asli */
+            display: none; 
         }
         .rating-group label {
-            color: #ddd; /* Warna bintang default (abu-abu) */
+            color: #ddd; 
             font-size: 2rem;
             padding: 0 5px;
             cursor: pointer;
             transition: color 0.2s;
         }
-        /* Efek saat di-hover atau saat radio button terpilih */
         .rating-group label:hover,
         .rating-group label:hover ~ label,
         .rating-group input:checked ~ label {
-            color: #ffc107; /* Warna emas Bootstrap */
+            color: #ffc107; 
         }
+        .border-dashed { border-style: dashed !important; border-width: 1px !important; }
     </style>
 </head>
 
@@ -92,7 +128,7 @@ if (isset($_POST['kirim_feedback'])) {
                 <div class="card shadow border-success mb-4">
                     <div class="card-body text-center p-5">
                         <div class="avtar avtar-xl bg-light-success text-success mb-3 mx-auto">
-                            <i class="ti ti-heart f-40"></i>
+                            <i class="fa-solid fa-heart" style="font-size: 40px;"></i>
                         </div>
                         <h3 class="mt-3 text-success"><?= $pesan_sukses; ?></h3>
                         <div class="mt-4">
@@ -102,17 +138,25 @@ if (isset($_POST['kirim_feedback'])) {
                 </div>
                 <?php else: ?>
 
+                <?php if($pesan_error != ""): ?>
+                    <div class="alert alert-danger" role="alert">
+                        <strong>Error:</strong> <?= $pesan_error; ?>
+                    </div>
+                <?php endif; ?>
+
                 <div class="card shadow">
                     <div class="card-header bg-dark text-white text-center py-3">
-                        <h4 class="mb-1 text-white">[ Bagaimana Pengalaman Kunjungan Anda? ]</h4>
-                        <small class="text-light">DPRD Kota Banjarmasin — REQ-2025-0055 | DPRD Kab. Tanah Laut | 10 Desember 2025</small>
+                        <h4 class="mb-1 text-white" style="color: #fff !important;">[ Bagaimana Pengalaman Kunjungan Anda? ]</h4>
+                        <small class="text-light" style="color: #cbd5e1 !important;">
+                            <?= htmlspecialchars($instansi_tamu); ?> — <?= htmlspecialchars($kode_booking); ?> | Agenda: <?= $tgl_agenda; ?>
+                        </small>
                     </div>
                     <div class="card-body p-4 px-md-5">
                         <form method="POST">
                             
                             <div class="mb-3">
                                 <label class="form-label fw-bold">Nama Pemberi Feedback <span class="text-danger">*</span></label>
-                                <input type="text" name="nama_pemberi" class="form-control" placeholder="Nama lengkap Anda" required>
+                                <input type="text" name="nama_pemberi" id="nama_pemberi_input" class="form-control" placeholder="Nama lengkap Anda" required>
                             </div>
                             
                             <div class="mb-4">
@@ -164,19 +208,14 @@ if (isset($_POST['kirim_feedback'])) {
                             </div>
 
                             <div class="form-check mb-4">
-                                <input class="form-check-input" type="checkbox" name="is_anonymous" id="anonim" value="1">
+                                <input class="form-check-input" type="checkbox" name="is_anonymous" id="anonim" value="1" onchange="toggleAnonim(this)">
                                 <label class="form-check-label text-muted" for="anonim">
                                     Kirim sebagai anonim (nama tidak ditampilkan di laporan)
                                 </label>
                             </div>
 
-                            <div class="alert alert-secondary d-flex align-items-center mb-4 border border-1" role="alert">
-                                <i class="ti ti-chart-bar me-2 f-20"></i>
-                                <div><small>Data feedback digunakan untuk Laporan Statistik Kepuasan Pelayanan pimpinan DPRD</small></div>
-                            </div>
-
                             <div class="d-flex justify-content-center gap-3 mt-4">
-                                <a href="cek_status.php" class="btn btn-light border px-4 py-2">[ Lewati ]</a>
+                                <a href="index.php" class="btn btn-light border px-4 py-2">[ Kembali ]</a>
                                 <button type="submit" name="kirim_feedback" class="btn btn-dark px-4 py-2">
                                     [ Kirim Feedback ]
                                 </button>
@@ -184,8 +223,8 @@ if (isset($_POST['kirim_feedback'])) {
 
                         </form>
                     </div>
-                    <div class="card-footer bg-dark text-white text-center py-2">
-                        <small>Data tersimpan di tabel feedback_kunjungan - digunakan untuk Laporan Statistik Dashboard</small>
+                    <div class="card-header bg-dark text-white text-center py-2" style="border-radius: 0 0 7px 7px;">
+                        <small style="color: #cbd5e1 !important;">Data tersimpan di tabel feedback_kunjungan - digunakan untuk Laporan Statistik Dashboard</small>
                     </div>
                 </div>
                 
@@ -195,6 +234,19 @@ if (isset($_POST['kirim_feedback'])) {
         </div>
     </div>
 
-    <script src="assets/js/plugins/bootstrap.min.js"></script>
+    <script>
+    function toggleAnonim(chk) {
+        const nameInput = document.getElementById('nama_pemberi_input');
+        if (chk.checked) {
+            nameInput.value = "Anonim";
+            nameInput.readOnly = true;
+            nameInput.required = false;
+        } else {
+            nameInput.value = "";
+            nameInput.readOnly = false;
+            nameInput.required = true;
+        }
+    }
+    </script>
 </body>
 </html>
