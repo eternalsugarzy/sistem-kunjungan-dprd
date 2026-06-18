@@ -43,6 +43,12 @@ if (isset($koneksi)) {
             <?php endif; ?>
           </a>
         </li>
+         <li class="pc-item <?= ($page == 'disposisi') ? 'active' : '' ?>">
+          <a href="disposisi_pimpinan.php" class="pc-link">
+            <span class="pc-micon"><i class="ti ti-file-check"></i></span>
+            <span class="pc-mtext">Disposisi Pimpinan</span>
+          </a>
+        </li>
         <li class="pc-item <?= ($page == 'data_kunjungan') ? 'active' : '' ?>">
           <a href="data_kunjungan.php" class="pc-link">
             <span class="pc-micon"><i class="ti ti-list"></i></span>
@@ -62,12 +68,7 @@ if (isset($koneksi)) {
           </a>
         </li>
 
-        <li class="pc-item <?= ($page == 'disposisi') ? 'active' : '' ?>">
-          <a href="disposisi_pimpinan.php" class="pc-link">
-            <span class="pc-micon"><i class="ti ti-file-description"></i></span>
-            <span class="pc-mtext">Disposisi Pimpinan</span>
-          </a>
-        </li>
+       
         <li class="pc-item <?= ($page == 'input_spt') ? 'active' : '' ?>">
           <a href="input_spt.php" class="pc-link">
             <span class="pc-micon"><i class="ti ti-file-certificate"></i></span>

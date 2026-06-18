@@ -76,7 +76,7 @@ if (isset($_GET['aksi']) && $_GET['aksi'] == 'tolak') {
                 <th>Instansi & Perihal</th>
                 <th>Jadwal Diajukan</th>
                 <th>Surat</th>
-                <th class="text-center">Aksi</th>
+               
               </tr>
             </thead>
             <tbody>
@@ -107,15 +107,7 @@ if (isset($_GET['aksi']) && $_GET['aksi'] == 'tolak') {
                         <i class="ti ti-file-text"></i> Lihat
                     </a>
                 </td>
-                <td class="text-center">
-                    <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#modalTerima<?= $d['id_kunjungan']; ?>">
-                        <i class="ti ti-check"></i> Proses
-                    </button>
-                    
-                    <a href="verifikasi_kunjungan.php?aksi=tolak&id=<?= $d['id_kunjungan']; ?>" class="btn btn-danger btn-sm" onclick="return confirm('Yakin ingin menolak permohonan ini?')">
-                        <i class="ti ti-x"></i> Tolak
-                    </a>
-                </td>
+               
               </tr>
 
               <div class="modal fade" id="modalTerima<?= $d['id_kunjungan']; ?>" tabindex="-1" aria-hidden="true">
