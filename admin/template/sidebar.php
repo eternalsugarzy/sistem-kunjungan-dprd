@@ -1,10 +1,9 @@
 <?php
 // --- TAMBAHAN LOGIC NOTIFIKASI ---
 // Hitung jumlah data pending langsung di sini agar muncul di semua halaman
-// Kita gunakan include_once untuk memastikan koneksi ada, meski biasanya header sudah membawanya.
 if (isset($koneksi)) {
   $q_notif = mysqli_query($koneksi, "SELECT * FROM kunjungan WHERE status_kegiatan='pending'");
-  $jml_notif = mysqli_num_rows($q_notif);
+  $jml_notif = $q_notif ? mysqli_num_rows($q_notif) : 0;
 } else {
   $jml_notif = 0;
 }
@@ -14,7 +13,6 @@ if (isset($koneksi)) {
   <div class="navbar-wrapper">
     <div class="m-header">
       <a href="dashboard.php" class="b-brand text-primary">
-       
          <img src="../assets/images/logo.png" class="logo-img" alt="Logo" style="height: 95px; padding-top: 10px; padding-left: 70px;" />
       </a>
     </div>
@@ -40,17 +38,21 @@ if (isset($koneksi)) {
           <a href="verifikasi_kunjungan.php" class="pc-link">
             <span class="pc-micon"><i class="ti ti-file-check"></i></span>
             <span class="pc-mtext">Verifikasi Masuk</span>
-
             <?php if ($jml_notif > 0): ?>
               <span class="pc-badge badge bg-danger rounded-pill ms-2"><?= $jml_notif; ?></span>
             <?php endif; ?>
-
           </a>
         </li>
         <li class="pc-item <?= ($page == 'data_kunjungan') ? 'active' : '' ?>">
           <a href="data_kunjungan.php" class="pc-link">
             <span class="pc-micon"><i class="ti ti-list"></i></span>
             <span class="pc-mtext">Data Kunjungan</span>
+          </a>
+        </li>
+        <li class="pc-item <?= ($page == 'scan_qr') ? 'active' : '' ?>">
+          <a href="scan_qr.php" class="pc-link">
+            <span class="pc-micon"><i class="ti ti-qrcode"></i></span>
+            <span class="pc-mtext">Scan QR Kedatangan</span>
           </a>
         </li>
         <li class="pc-item <?= ($page == 'buku_tamu') ? 'active' : '' ?>">
@@ -60,6 +62,18 @@ if (isset($koneksi)) {
           </a>
         </li>
 
+        <li class="pc-item <?= ($page == 'disposisi') ? 'active' : '' ?>">
+          <a href="disposisi_pimpinan.php" class="pc-link">
+            <span class="pc-micon"><i class="ti ti-file-description"></i></span>
+            <span class="pc-mtext">Disposisi Pimpinan</span>
+          </a>
+        </li>
+        <li class="pc-item <?= ($page == 'input_spt') ? 'active' : '' ?>">
+          <a href="input_spt.php" class="pc-link">
+            <span class="pc-micon"><i class="ti ti-file-certificate"></i></span>
+            <span class="pc-mtext">Input SPT</span>
+          </a>
+        </li>
         <li class="pc-item pc-caption">
           <label>Data Master</label>
           <i class="ti ti-apps"></i>
@@ -73,7 +87,7 @@ if (isset($koneksi)) {
           <ul class="pc-submenu">
             <li class="pc-item"><a class="pc-link" href="master_ruangan.php">Data Ruangan</a></li>
             <li class="pc-item"><a class="pc-link" href="master_pj.php">Penanggung Jawab</a></li>
-            <?php if ($_SESSION['level'] == 'admin'): ?>
+            <?php if (isset($_SESSION['level']) && $_SESSION['level'] == 'admin'): ?>
               <li class="pc-item"><a class="pc-link" href="manajemen_user.php">Manajemen Admin</a></li>
             <?php endif; ?>
           </ul>
@@ -94,6 +108,7 @@ if (isset($koneksi)) {
     </div>
   </div>
 </nav>
+
 <header class="pc-header">
   <div class="header-wrapper">
     <div class="me-auto pc-mob-drp">
@@ -114,16 +129,12 @@ if (isset($koneksi)) {
     <div class="ms-auto">
       <ul class="list-unstyled">
         <li class="dropdown pc-h-item header-user-profile">
-          <a class="pc-head-link head-link-primary dropdown-toggle arrow-none me-0" data-bs-toggle="dropdown" href="#"
-            role="button">
-          
+          <a class="pc-head-link head-link-primary dropdown-toggle arrow-none me-0" data-bs-toggle="dropdown" href="#" role="button">
             <span><i class="ti ti-settings"></i></span>
           </a>
           <div class="dropdown-menu dropdown-user-profile dropdown-menu-end pc-h-dropdown">
             <div class="dropdown-header">
-              <h4>
-                Halo, <span class="small text-muted"><?= $_SESSION['nama'] ?? 'Admin'; ?></span>
-              </h4>
+              <h4>Halo, <span class="small text-muted"><?= htmlspecialchars($_SESSION['nama'] ?? 'Admin'); ?></span></h4>
               <hr />
               <a href="logout.php" class="dropdown-item">
                 <i class="ti ti-logout"></i>
@@ -136,5 +147,6 @@ if (isset($koneksi)) {
     </div>
   </div>
 </header>
+
 <div class="pc-container">
   <div class="pc-content">

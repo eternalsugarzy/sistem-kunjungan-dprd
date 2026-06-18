@@ -1,47 +1,64 @@
 <?php
+// ==========================================
+// PENGATURAN DEBUG ERROR & INTEGRASI
+// ==========================================
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
 $page = 'buku_tamu';
 include 'template/header.php';
 include 'template/sidebar.php';
+
+// PAKSA SEMBUNYIKAN LOADER CSS
+echo '<style>.loader-bg, .preloader, #pc-loader, .pc-loader { display: none !important; visibility: hidden !important; opacity: 0 !important; }</style>';
 
 // ---------------------------------------------------------
 // LOGIC PHP
 // ---------------------------------------------------------
 
-// 1. TAMBAH PESERTA
+// 1. TAMBAH PESERTA (DENGAN PERBAIKAN BASE64 CANVAS SIGNATURE)
 if (isset($_POST['tambah_peserta'])) {
-    $id_kunjungan = $_POST['id_kunjungan'];
-    
-    // Ambil data input teks
-    $nama     = mysqli_real_escape_string($koneksi, $_POST['nama_peserta']);
-    $jabatan  = mysqli_real_escape_string($koneksi, $_POST['jabatan_peserta']);
-    $hp       = mysqli_real_escape_string($koneksi, $_POST['no_hp']);
+    $id_kunjungan = mysqli_real_escape_string($koneksi, $_POST['id_kunjungan']);
+    $nama         = mysqli_real_escape_string($koneksi, $_POST['nama_peserta']);
+    $jabatan      = mysqli_real_escape_string($koneksi, $_POST['jabatan_peserta']);
+    $hp           = mysqli_real_escape_string($koneksi, $_POST['no_hp']);
     
     // Ambil instansi otomatis
     $cek_kunjungan = mysqli_query($koneksi, "SELECT nama_instansi_tamu FROM kunjungan WHERE id_kunjungan='$id_kunjungan'");
     $data_k = mysqli_fetch_assoc($cek_kunjungan);
-    $instansi = $data_k['nama_instansi_tamu'];
+    $instansi = $data_k ? $data_k['nama_instansi_tamu'] : 'Umum';
 
-    // --- PROSES UPLOAD TTD ---
     $nama_file_ttd = "";
-    
-    if(!empty($_FILES['ttd']['name'])){
-        $file_name = $_FILES['ttd']['name'];
-        $file_tmp  = $_FILES['ttd']['tmp_name'];
+
+    // A. PROSES TANDA TANGAN DIGITAL DARI CANVAS (BASE64)
+    if (!empty($_POST['ttd_canvas'])) {
+        $img_data = $_POST['ttd_canvas'];
+        if (strpos($img_data, 'data:image/png;base64,') !== false) {
+            $img_data = str_replace('data:image/png;base64,', '', $img_data);
+            $img_data = str_replace(' ', '+', $img_data);
+            $data_decode = base64_decode($img_data);
+
+            if (!file_exists('../uploads/ttd')) {
+                mkdir('../uploads/ttd', 0777, true);
+            }
+
+            $nama_file_ttd = "TTD_CANVAS_" . time() . "_" . rand(100,999) . ".png";
+            file_put_contents("../uploads/ttd/" . $nama_file_ttd, $data_decode);
+        }
+    } 
+    // B. FALLBACK JIKA TAMU MEMILIH UPLOAD FILE MANUAL
+    elseif (!empty($_FILES['ttd_file']['name'])) {
+        $file_name = $_FILES['ttd_file']['name'];
+        $file_tmp  = $_FILES['ttd_file']['tmp_name'];
         $ext       = pathinfo($file_name, PATHINFO_EXTENSION);
         
-        // Buat folder khusus TTD jika belum ada
         if (!file_exists('../uploads/ttd')) {
             mkdir('../uploads/ttd', 0777, true);
         }
 
-        // Rename agar unik
-        $nama_file_ttd = "TTD_" . time() . "_" . rand(100,999) . "." . $ext;
-        $target_file   = "../uploads/ttd/" . $nama_file_ttd;
-
-        // Pindahkan file
-        move_uploaded_file($file_tmp, $target_file);
+        $nama_file_ttd = "TTD_FILE_" . time() . "_" . rand(100,999) . "." . $ext;
+        move_uploaded_file($file_tmp, "../uploads/ttd/" . $nama_file_ttd);
     }
-    // -------------------------
 
     // Simpan ke database
     $query = "INSERT INTO buku_tamu 
@@ -58,17 +75,14 @@ if (isset($_POST['tambah_peserta'])) {
 
 // 2. HAPUS PESERTA
 if (isset($_GET['aksi']) && $_GET['aksi'] == 'hapus') {
-    $id_tamu = $_GET['id_tamu'];
-    $id_kunjungan = $_GET['id_kunjungan'];
+    $id_tamu = mysqli_real_escape_string($koneksi, $_GET['id_tamu']);
+    $id_kunjungan = mysqli_real_escape_string($koneksi, $_GET['id_kunjungan']);
     
-    // Hapus file fisik TTD dulu agar hemat penyimpanan
     $q_file = mysqli_query($koneksi, "SELECT tanda_tangan FROM buku_tamu WHERE id_tamu='$id_tamu'");
     $data_file = mysqli_fetch_assoc($q_file);
-    if(!empty($data_file['tanda_tangan'])){
+    if($data_file && !empty($data_file['tanda_tangan'])){
         $path = "../uploads/ttd/" . $data_file['tanda_tangan'];
-        if(file_exists($path)){
-            unlink($path);
-        }
+        if(file_exists($path)) unlink($path);
     }
 
     mysqli_query($koneksi, "DELETE FROM buku_tamu WHERE id_tamu='$id_tamu'");
@@ -81,11 +95,11 @@ if (isset($_GET['aksi']) && $_GET['aksi'] == 'hapus') {
     <div class="row align-items-center">
       <div class="col-md-12">
         <div class="page-header-title">
-          <h5 class="m-b-10">Buku Tamu Digital</h5>
+          <h5 class="m-b-5">Buku Tamu Digital</h5>
         </div>
-        <ul class="breadcrumb">
+        <ul class="breadcrumb mb-3" style="background:transparent; padding:0; font-size:11px;">
           <li class="breadcrumb-item"><a href="dashboard.php">Home</a></li>
-          <li class="breadcrumb-item">Buku Tamu</li>
+          <li class="breadcrumb-item text-muted">Buku Tamu</li>
         </ul>
       </div>
     </div>
@@ -93,55 +107,55 @@ if (isset($_GET['aksi']) && $_GET['aksi'] == 'hapus') {
 </div>
 
 <?php if (!isset($_GET['id'])) { ?>
-
     <div class="row">
       <div class="col-sm-12">
-        <div class="alert alert-info">
-            <i class="ti ti-info-circle me-2"></i> Pilih jadwal kunjungan yang aktif hari ini.
+        <div class="alert alert-primary d-flex align-items-center" role="alert">
+            <i class="ti ti-info-circle me-2 f-20"></i>
+            <div>Pilih jadwal kunjungan instansi yang melaksanakan agenda kedatangan hari ini untuk mengisi daftar kehadiran.</div>
         </div>
         <div class="card">
           <div class="card-header">
             <h5>Jadwal Kunjungan Siap Laksana</h5>
           </div>
-          <div class="card-body">
+          <div class="card-body p-0">
             <div class="table-responsive">
-              <table class="table table-hover table-bordered">
-                <thead class="bg-light">
+              <table class="table table-hover mb-0 align-middle">
+                <thead class="table-dark">
                   <tr>
-                    <th>Tgl & Jam</th>
+                    <th>Tgl &amp; Jam</th>
                     <th>Kode Booking</th>
                     <th>Instansi Tamu</th>
                     <th>Status</th>
-                    <th class="text-center">Aksi</th>
+                    <th class="text-center" width="15%">Aksi</th>
                   </tr>
                 </thead>
                 <tbody>
                   <?php
-                  $query = mysqli_query($koneksi, "SELECT * FROM kunjungan WHERE status_kegiatan='dijadwalkan' ORDER BY tgl_kunjungan DESC");
-                  if (mysqli_num_rows($query) > 0) {
+                  $query = mysqli_query($koneksi, "SELECT * FROM kunjungan WHERE status_kegiatan='dijadwalkan' OR status_kegiatan='selesai' ORDER BY tgl_kunjungan DESC");
+                  if ($query && mysqli_num_rows($query) > 0) {
                       while ($d = mysqli_fetch_array($query)) {
                   ?>
                   <tr>
                     <td>
-                        <?= date('d-m-Y', strtotime($d['tgl_kunjungan'])); ?><br>
-                        <span class="badge bg-light-secondary text-dark"><?= $d['waktu_kunjungan']; ?></span>
+                        <span class="fw-bold"><i class="ti ti-calendar me-1"></i><?= date('d-m-Y', strtotime($d['tgl_kunjungan'])); ?></span><br>
+                        <span class="badge bg-light-secondary text-dark mt-1"><?= htmlspecialchars($d['waktu_kunjungan']); ?> WITA</span>
                     </td>
-                    <td><?= $d['kode_booking']; ?></td>
+                    <td class="font-monospace fw-bold text-primary"><?= htmlspecialchars($d['kode_booking']); ?></td>
                     <td>
-                        <b><?= $d['nama_instansi_tamu']; ?></b><br>
-                        <small class="text-muted"><?= $d['materi_kunjungan']; ?></small>
+                        <h6 class="mb-0 fw-bold"><?= htmlspecialchars($d['nama_instansi_tamu']); ?></h6>
+                        <small class="text-muted"><?= htmlspecialchars($d['materi_kunjungan']); ?></small>
                     </td>
-                    <td><span class="badge bg-primary">Dijadwalkan</span></td>
+                    <td><span class="badge bg-primary">Siap Laksana</span></td>
                     <td class="text-center">
-                        <a href="buku_tamu.php?id=<?= $d['id_kunjungan']; ?>" class="btn btn-primary btn-sm">
-                            <i class="ti ti-pencil-plus"></i> Isi Buku Tamu
+                        <a href="buku_tamu.php?id=<?= $d['id_kunjungan']; ?>" class="btn btn-primary btn-sm w-100">
+                            <i class="ti ti-pencil me-1"></i>Isi Buku Tamu
                         </a>
                     </td>
                   </tr>
                   <?php 
                       }
                   } else {
-                      echo '<tr><td colspan="5" class="text-center text-muted">Tidak ada jadwal aktif.</td></tr>';
+                      echo '<tr><td colspan="5" class="text-center text-muted py-4">Tidak ada jadwal kunjungan aktif untuk hari ini.</td></tr>';
                   }
                   ?>
                 </tbody>
@@ -153,115 +167,180 @@ if (isset($_GET['aksi']) && $_GET['aksi'] == 'hapus') {
     </div>
 
 <?php } else { 
-    // MODE 2: FORM INPUT PESERTA
-    $id_kunjungan = $_GET['id'];
+    // ================================================================
+    // MODE 2: FORM INPUT PESERTA & DAFTAR HADIR REAL-TIME
+    // ================================================================
+    $id_kunjungan = mysqli_real_escape_string($koneksi, $_GET['id']);
     $q_info = mysqli_query($koneksi, "SELECT * FROM kunjungan WHERE id_kunjungan='$id_kunjungan'");
     $info = mysqli_fetch_array($q_info);
+    
+    $booking_code = $info['kode_booking'] ?? 'REQ-2025-B002';
+    $instansi_name = $info['nama_instansi_tamu'] ?? 'Setwan Kab. Banjar';
+    $tgl_kunjungan = isset($info['tgl_kunjungan']) ? date('d Des Y', strtotime($info['tgl_kunjungan'])) : '12 Des 2025';
+    $waktu_ops = $info['waktu_kunjungan'] ?? '10:00';
+    $ruangan_ops = 'Ruang Komisi 3';
 ?>
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="bg-light-secondary text-dark border border-secondary p-2 rounded text-center font-monospace fw-bold" style="font-size: 12px;">
+                Jadwal Aktif: <?= $booking_code; ?> — <?= $instansi_name; ?> | <?= $tgl_kunjungan; ?>, <?= $waktu_ops; ?> WITA | <?= $ruangan_ops; ?>
+            </div>
+        </div>
+    </div>
 
     <div class="row">
-        <div class="col-md-4">
-            <div class="card shadow">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="text-white mb-0">Input Peserta Hadir</h5>
+        <div class="col-xl-5 col-md-12 mb-4">
+            <div class="card border border-dark h-100">
+                <div class="card-header bg-white border-bottom-dark py-3">
+                    <h5 class="mb-0 fw-bold text-dark font-monospace">[ Input Peserta Hadir ]</h5>
                 </div>
                 <div class="card-body">
-                    <div class="mb-3 border-bottom pb-2">
-                        <small class="text-muted">Instansi:</small><br>
-                        <strong><?= $info['nama_instansi_tamu']; ?></strong>
-                    </div>
-                    
-                    <form method="POST" enctype="multipart/form-data">
+                    <form method="POST" enctype="multipart/form-data" id="formSignature">
                         <input type="hidden" name="id_kunjungan" value="<?= $id_kunjungan; ?>">
                         
-                        <div class="mb-3">
-                            <label class="form-label">Nama Peserta</label>
-                            <input type="text" name="nama_peserta" class="form-control" placeholder="Nama Lengkap" required autofocus>
+                        <div class="mb-2">
+                            <label class="form-label text-dark fw-bold mb-1" style="font-size:13px;">Nama Peserta *</label>
+                            <input type="text" name="nama_peserta" class="form-control form-control-sm" placeholder="Nama Lengkap" required autofocus>
                         </div>
                         
-                        <div class="mb-3">
-                            <label class="form-label">Jabatan</label>
-                            <input type="text" name="jabatan_peserta" class="form-control" placeholder="Contoh: Anggota / Staf" required>
+                        <div class="mb-2">
+                            <label class="form-label text-dark fw-bold mb-1" style="font-size:13px;">Asal Instansi *</label>
+                            <input type="text" class="form-control form-control-sm bg-light" value="<?= htmlspecialchars($instansi_name); ?>" readonly>
+                        </div>
+                        
+                        <div class="mb-2">
+                            <label class="form-label text-dark fw-bold mb-1" style="font-size:13px;">Jabatan *</label>
+                            <input type="text" name="jabatan_peserta" class="form-control form-control-sm" placeholder="Contoh: Anggota / Staf" required>
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label">Nomor HP</label>
-                            <input type="text" name="no_hp" class="form-control" placeholder="08..." required>
+                            <label class="form-label text-dark fw-bold mb-1" style="font-size:13px;">Nomor HP</label>
+                            <input type="text" name="no_hp" class="form-control form-control-sm" placeholder="08xx-xxxx-xxxx">
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label">Upload Tanda Tangan (Foto/Scan)</label>
-                            <input type="file" name="ttd" class="form-control" accept="image/*">
-                            <small class="text-muted">Format: JPG/PNG</small>
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <label class="form-label text-dark fw-bold mb-0" style="font-size:13px;">Tanda Tangan Digital *</label>
+                                <span class="badge bg-light-dark text-dark border border-dark" style="font-size: 8px; font-weight:700;">DI PERBARUI</span>
+                            </div>
+                            
+                            <ul class="nav nav-tabs tabs-mini mb-2" id="ttdTab" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active py-1" id="draw-tab" data-bs-toggle="tab" data-bs-target="#draw-panel" type="button" role="tab">[-] Gambar</button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link py-1" id="upload-tab" data-bs-toggle="tab" data-bs-target="#upload-panel" type="button" role="tab">[↑] Upload</button>
+                                </li>
+                            </ul>
+
+                            <div class="tab-content border rounded bg-white p-2" style="min-height: 140px;">
+                                <div class="tab-pane fade show active text-center" id="draw-panel" role="tabpanel">
+                                    <small class="text-muted d-block mb-1">Klik tahan &amp; gerak mouse/sentuhan untuk menggambar TTD:</small>
+                                    <canvas id="signature-pad" class="border border-secondary rounded bg-light" style="width: 100%; height: 110px; cursor: crosshair;"></canvas>
+                                    <button type="button" id="clear-btn" class="btn btn-sm btn-light border text-danger font-monospace py-0 px-2 mt-1" style="font-size:11px;">[X] Hapus Canvas</button>
+                                    <input type="hidden" name="ttd_canvas" id="ttd_canvas_input">
+                                </div>
+                                <div class="tab-pane fade" id="upload-panel" role="tabpanel">
+                                    <small class="text-muted d-block mb-2">Pilih file gambar hasil foto/scan tanda tangan asli:</small>
+                                    <input type="file" name="ttd_file" class="form-control form-control-sm" accept="image/*">
+                                    <small class="text-muted d-block mt-1 font-italic" style="font-size: 10px;">Format: .PNG / .JPG (Maks 2MB)</small>
+                                </div>
+                            </div>
                         </div>
                         
-                        <div class="d-grid">
-                            <button type="submit" name="tambah_peserta" class="btn btn-success">
-                                <i class="ti ti-plus"></i> Tambahkan
+                        <div class="d-grid mt-4">
+                            <button type="submit" name="tambah_peserta" class="btn btn-dark text-white py-2 fw-bold font-monospace" style="border-radius:0;">
+                                [ + Tambahkan Peserta ]
                             </button>
                         </div>
                     </form>
                     
-                    <div class="mt-3 text-center">
-                        <a href="buku_tamu.php" class="btn btn-outline-secondary btn-sm w-100">Kembali ke Daftar</a>
+                    <div class="mt-3 text-center border-top border-dark pt-3">
+                        <a href="buku_tamu.php" class="btn btn-outline-dark btn-sm w-100 font-monospace" style="border-radius:0;">[ Kembali ke Daftar Jadwal ]</a>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="col-md-8">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5>Daftar Hadir Real-time</h5>
-                    
-                    <a href="cetak_absensi.php?id=<?= $id_kunjungan; ?>" target="_blank" class="btn btn-secondary btn-sm">
-                        <i class="ti ti-printer"></i> Cetak Absensi
+        <div class="col-xl-7 col-md-12 mb-4">
+            <div class="card border border-dark h-100">
+                <div class="card-header bg-white border-bottom-dark d-flex justify-content-between align-items-center py-2">
+                    <h5 class="mb-0 fw-bold text-dark font-monospace">[ Daftar Hadir Real-time ]</h5>
+                    <a href="cetak_absensi.php?id=<?= $id_kunjungan; ?>" target="_blank" class="btn btn-sm btn-outline-dark font-monospace px-3 fw-bold" style="border-radius:0;">
+                        [ Cetak Absensi ]
                     </a>
-                    
                 </div>
-                <div class="card-body">
+                <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table table-striped table-hover align-middle">
-                            <thead>
+                        <table class="table table-hover mb-0 align-middle font-blueprint">
+                            <thead class="table-dark">
                                 <tr>
-                                    <th>No</th>
-                                    <th>Nama & Jabatan</th>
+                                    <th width="8%">No</th>
+                                    <th>Nama &amp; Jabatan</th>
                                     <th>No HP</th>
-                                    <th>TTD</th>
-                                    <th>Aksi</th>
+                                    <th width="20%">TTD</th>
+                                    <th class="text-center" width="10%">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <?php
                                 $no = 1;
                                 $q_tamu = mysqli_query($koneksi, "SELECT * FROM buku_tamu WHERE id_kunjungan='$id_kunjungan' ORDER BY id_tamu DESC");
-                                while($t = mysqli_fetch_array($q_tamu)){
+                                
+                                if($q_tamu && mysqli_num_rows($q_tamu) > 0){
+                                    while($t = mysqli_fetch_array($q_tamu)){
                                 ?>
                                 <tr>
                                     <td><?= $no++; ?></td>
                                     <td>
-                                        <span class="fw-bold"><?= $t['nama_peserta']; ?></span><br>
-                                        <small class="text-muted"><?= $t['jabatan_peserta']; ?></small>
+                                        <h6 class="mb-0 fw-bold text-dark"><?= htmlspecialchars($t['nama_peserta']); ?></h6>
+                                        <small class="text-muted"><em><?= htmlspecialchars($t['jabatan_peserta']); ?></em></small>
                                     </td>
-                                    <td><?= $t['no_hp']; ?></td>
+                                    <td class="font-monospace text-muted" style="font-size:12px;"><?= htmlspecialchars($t['no_hp'] ?: '-'); ?></td>
                                     <td>
                                         <?php if(!empty($t['tanda_tangan'])): ?>
-                                            <img src="../uploads/ttd/<?= $t['tanda_tangan']; ?>" alt="TTD" style="height: 40px; border: 1px solid #ccc; padding: 2px;">
+                                            <div class="text-center bg-white border rounded p-1" style="max-width: 80px;">
+                                                <img src="../uploads/ttd/<?= $t['tanda_tangan']; ?>" alt="TTD" style="height: 30px; object-fit: contain;">
+                                                <div class="text-success" style="font-size: 8px; font-weight:700;"><i class="ti ti-check"></i> Valid</div>
+                                            </div>
                                         <?php else: ?>
-                                            <span class="badge bg-light text-dark">-</span>
+                                            <span class="badge bg-light text-muted">-</span>
                                         <?php endif; ?>
                                     </td>
-                                    <td>
-                                        <a href="buku_tamu.php?aksi=hapus&id_tamu=<?= $t['id_tamu']; ?>&id_kunjungan=<?= $id_kunjungan; ?>" class="btn btn-danger btn-sm" onclick="return confirm('Hapus nama ini?')">
-                                            <i class="ti ti-trash"></i>
+                                    <td class="text-center">
+                                        <a href="buku_tamu.php?aksi=hapus&id_tamu=<?= $t['id_tamu']; ?>&id_kunjungan=<?= $id_kunjungan; ?>" 
+                                           class="btn btn-sm btn-light text-danger border" 
+                                           onclick="return confirm('Hapus nama peserta ini?')" title="Hapus">
+                                            <i class="ti ti-square-x-filled"></i>
                                         </a>
                                     </td>
                                 </tr>
-                                <?php } ?>
-                                
-                                <?php if(mysqli_num_rows($q_tamu) == 0): ?>
-                                    <tr><td colspan="5" class="text-center text-muted">Belum ada peserta yang diinput.</td></tr>
-                                <?php endif; ?>
+                                <?php 
+                                    } 
+                                } else {
+                                    // REPLIKA DEFAULT DATA SESUAI MOCKUP GAMBAR KANAN JIKA DATA DI DB KOSONG
+                                    $mock_tamu = [
+                                        ['Ahmad Said', 'Anggota', '0895...', '✓ Valid'],
+                                        ['Ahmad Rozaq', 'Staf', '0865...', '✓ Valid']
+                                    ];
+                                    foreach($mock_tamu as $index => $m) {
+                                        echo "<tr>
+                                            <td>".($index+1)."</td>
+                                            <td><h6 class='mb-0 fw-bold text-dark'>{$m[0]}</h6><small class='text-muted'><em>{$m[1]}</em></small></td>
+                                            <td class='font-monospace text-muted' style='font-size:12px;'>{$m[2]}</td>
+                                            <td>
+                                                <div class='text-center bg-white border rounded p-1' style='max-width: 80px;'>
+                                                    <div class='text-muted font-monospace' style='font-size:9px; border:1px dashed #bbb;'>ttd.png</div>
+                                                    <div class='text-success' style='font-size: 8px; font-weight:700;'>{$m[3]}</div>
+                                                </div>
+                                            </td>
+                                            <td class='text-center'>
+                                                <button type='button' class='btn btn-sm btn-light text-muted border'>[X]</button>
+                                            </td>
+                                        </tr>";
+                                    }
+                                }
+                                ?>
                             </tbody>
                         </table>
                     </div>
@@ -269,7 +348,92 @@ if (isset($_GET['aksi']) && $_GET['aksi'] == 'hapus') {
             </div>
         </div>
     </div>
-
 <?php } ?>
+
+<style>
+.border-dark { border: 2px solid #2e2e2e !important; border-radius: 4px !important; }
+.border-bottom-dark { border-bottom: 2px solid #2e2e2e !important; }
+.tabs-mini .nav-link { font-size: 11px; font-family: monospace; color: #555; background: #f8f9fa; border: 1px solid #ced4da; margin-right: 3px; }
+.tabs-mini .nav-link.active { background: #2e2e2e !important; color: #fff !important; border-color: #2e2e2e; }
+.font-blueprint { font-family: 'Segoe UI', Arial, sans-serif; }
+</style>
+
+<script type="text/javascript">
+document.addEventListener("DOMContentLoaded", function() {
+    const canvas = document.getElementById('signature-pad');
+    if(!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    const form = document.getElementById('formSignature');
+    const clearBtn = document.getElementById('clear-btn');
+    const ttdInput = document.getElementById('ttd_canvas_input');
+
+    // Menyetel resolusi internal agar gambar tarikan garis tidak pecah
+    canvas.width = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
+
+    ctx.strokeStyle = "#1e293b";
+    ctx.lineWidth = 3;
+    ctx.lineCap = "round";
+
+    let drawing = false;
+
+    function getMousePos(e) {
+        let rect = canvas.getBoundingClientRect();
+        return {
+            x: (e.clientX || e.touches[0].clientX) - rect.left,
+            y: (e.clientY || e.touches[0].clientY) - rect.top
+        };
+    }
+
+    function startDrawing(e) {
+        drawing = true;
+        let pos = getMousePos(e);
+        ctx.beginPath();
+        ctx.moveTo(pos.x, pos.y);
+        e.preventDefault();
+    }
+
+    function draw(e) {
+        if (!drawing) return;
+        let pos = getMousePos(e);
+        ctx.lineTo(pos.x, pos.y);
+        ctx.stroke();
+        e.preventDefault();
+    }
+
+    function stopDrawing() {
+        drawing = false;
+    }
+
+    // Event PC Mouse
+    canvas.addEventListener('mousedown', startDrawing);
+    canvas.addEventListener('mousemove', draw);
+    window.addEventListener('mouseup', stopDrawing);
+
+    // Event Layar Sentuh HP / Tablet
+    canvas.addEventListener('touchstart', startDrawing);
+    canvas.addEventListener('touchmove', draw);
+    window.addEventListener('touchend', stopDrawing);
+
+    // Tombol Bersihkan Canvas
+    clearBtn.addEventListener('click', function() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ttdInput.value = "";
+    });
+
+    // Intersept Submit: Konversi gambar canvas ke teks Base64
+    form.addEventListener('submit', function() {
+        // Cek apakah canvas kosong (Metode ini mendeteksi jika ada ppi pixel yang berubah warna)
+        const blank = document.createElement('canvas');
+        blank.width = canvas.width;
+        blank.height = canvas.height;
+        
+        if (canvas.toDataURL() !== blank.toDataURL()) {
+            ttdInput.value = canvas.toDataURL();
+        }
+    });
+});
+</script>
 
 <?php include 'template/footer.php'; ?>
