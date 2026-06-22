@@ -5,7 +5,7 @@
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-$page = 'scan_checkout'; // Menyalakan menu aktif di sidebar (jika ada)
+$page = 'scan_checkout'; // Menyalakan menu aktif di sidebar
 
 include 'template/header.php';
 include 'template/sidebar.php';
@@ -18,7 +18,7 @@ $pesan_sukses = "";
 $pesan_gagal = "";
 
 // ==========================================
-// PROSES DATABASE SAAT QR BERHASIL DISCAN (CHECK-OUT)
+// PROSES DATABASE SAAT QR DISCAN / DIINPUT MANUAL
 // ==========================================
 if (isset($_POST['kode_booking'])) {
     $kode_booking = mysqli_real_escape_string($koneksi, $_POST['kode_booking']);
@@ -29,21 +29,34 @@ if (isset($_POST['kode_booking'])) {
     if ($cek_kunjungan && mysqli_num_rows($cek_kunjungan) > 0) {
         $data = mysqli_fetch_assoc($cek_kunjungan);
         
-        // Logika Status Kehadiran untuk Check-Out
-        if (strtolower($data['status_kehadiran']) == 'belum') {
-            $pesan_gagal = "Gagal! Instansi " . $data['nama_instansi_tamu'] . " belum melakukan Check-In kedatangan.";
-        } elseif (strtolower($data['status_kehadiran']) == 'selesai') {
-            $pesan_sukses = "Pemberitahuan: Instansi " . $data['nama_instansi_tamu'] . " sudah melakukan Check-Out sebelumnya pada " . date('d/m/Y H:i', strtotime($data['waktu_checkout'])) . " WITA.";
-        } else {
-            // Update status kehadiran menjadi selesai dan catat waktu checkout
-            $update = mysqli_query($koneksi, "UPDATE kunjungan SET status_kehadiran = 'selesai', waktu_checkout = NOW() WHERE kode_booking = '$kode_booking'");
+        $stat_kegiatan = strtolower($data['status_kegiatan']);
+        $stat_kehadiran = strtolower($data['status_kehadiran']);
+        
+        // LOGIKA BARU YANG LEBIH TEPAT & KETAT
+        if ($stat_kegiatan == 'selesai' || $stat_kehadiran == 'selesai') {
+            // Jika sebelumnya sudah checkout
+            $waktu_pulang = !empty($data['waktu_checkout']) ? date('d/m/Y H:i', strtotime($data['waktu_checkout'])) : 'Sebelumnya';
+            $pesan_sukses = "Pemberitahuan: Instansi <b>" . $data['nama_instansi_tamu'] . "</b> sudah melakukan Check-Out pada " . $waktu_pulang . " WITA.";
             
-            if ($update) {
-                $pesan_sukses = "Sukses! Proses Check-Out Instansi <strong>" . $data['nama_instansi_tamu'] . "</strong> berhasil dicatat. Jangan lupa kumpulkan Kartu Tamu Sementara.";
+        } elseif ($stat_kegiatan == 'sedang berkunjung' || $stat_kehadiran == 'hadir') {
+            // PROSES UTAMA CHECKOUT (Otomatis mengubah 2 status sekaligus)
+            $query_update = "UPDATE kunjungan SET 
+                             status_kegiatan = 'selesai', 
+                             status_kehadiran = 'selesai', 
+                             waktu_checkout = NOW() 
+                             WHERE kode_booking = '$kode_booking'";
+                             
+            if (mysqli_query($koneksi, $query_update)) {
+                $pesan_sukses = "Sukses! Proses Check-Out Instansi <strong>" . $data['nama_instansi_tamu'] . "</strong> berhasil dicatat. Status kunjungan kini telah <b>Selesai</b>. Jangan lupa kumpulkan Kartu Tamu Sementara.";
             } else {
-                $pesan_gagal = "Terjadi kesalahan internal saat memperbarui database.";
+                $pesan_gagal = "Terjadi kesalahan internal saat memperbarui database: " . mysqli_error($koneksi);
             }
+            
+        } else {
+            // Jika tamu belum check-in sama sekali (masih pending/dijadwalkan/batal)
+            $pesan_gagal = "Gagal! Instansi <b>" . $data['nama_instansi_tamu'] . "</b> belum melakukan Check-In. (Status saat ini: " . ucfirst($stat_kegiatan) . ")";
         }
+        
     } else {
         $pesan_gagal = "Gagal! Kode E-Ticket QR (" . $kode_booking . ") tidak terdaftar di sistem.";
     }
@@ -69,7 +82,6 @@ if (isset($_POST['kode_booking'])) {
 </div>
 
 <div class="row">
-    <!-- KOLOM SCANNER -->
     <div class="col-xl-6 col-md-12 mb-4">
         <div class="card h-100 border-dark shadow-sm">
             <div class="card-header bg-dark text-white border-bottom border-dark">
@@ -86,7 +98,6 @@ if (isset($_POST['kode_booking'])) {
         </div>
     </div>
 
-    <!-- KOLOM HASIL & INPUT MANUAL -->
     <div class="col-xl-6 col-md-12 mb-4">
         <div class="card h-100 border-dark shadow-sm">
             <div class="card-header bg-white border-bottom border-dark">
@@ -94,7 +105,6 @@ if (isset($_POST['kode_booking'])) {
             </div>
             <div class="card-body">
                 
-                <!-- NOTIFIKASI SUKSES -->
                 <?php if (!empty($pesan_sukses)): ?>
                     <div class="alert alert-success border-success" role="alert">
                         <div class="d-flex align-items-center mb-2">
@@ -104,7 +114,6 @@ if (isset($_POST['kode_booking'])) {
                     </div>
                 <?php endif; ?>
 
-                <!-- NOTIFIKASI GAGAL -->
                 <?php if (!empty($pesan_gagal)): ?>
                     <div class="alert alert-danger d-flex align-items-center border-danger" role="alert">
                         <i class="ti ti-circle-x me-2 f-24"></i>
@@ -121,7 +130,6 @@ if (isset($_POST['kode_booking'])) {
                         </div>
                         <div class="form-text text-muted">Petugas dapat mengetik kode manual jika kamera bermasalah.</div>
                     </div>
-                    <!-- Warna tombol dibedakan menjadi outline-dark agar tidak tertukar dengan Check-in -->
                     <button type="submit" class="btn btn-outline-dark w-100 py-2 fw-bold"><i class="ti ti-logout me-1"></i> Konfirmasi Check-Out</button>
                 </form>
 
@@ -140,49 +148,21 @@ if (isset($_POST['kode_booking'])) {
 
 <script type="text/javascript">
 function onScanSuccess(decodedText, decodedResult) {
-    // Isikan hasil scan barcode ke dalam kolom teks input
     document.getElementById('kode_booking_field').value = decodedText;
-    
-    // Matikan scanner sejenak agar tidak melakukan submit berkali-kali
     html5QrcodeScanner.clear();
-    
-    // Otomatis submit form ke database PHP
     document.getElementById('form-qr-checkout').submit();
 }
+function onScanFailure(error) { }
 
-function onScanFailure(error) {
-    // Diabaikan agar konsol tidak penuh
-}
-
-// Konfigurasi area kotak bidik kamera
-let html5QrcodeScanner = new Html5QrcodeScanner(
-    "reader", { fps: 15, qrbox: { width: 230, height: 230 } }, /* verbose= */ false
-);
+let html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 15, qrbox: { width: 230, height: 230 } }, false);
 html5QrcodeScanner.render(onScanSuccess, onScanFailure);
 </script>
 
 <style>
 .border-dashed { border-style: dashed !important; border-width: 1px !important; border-color: #cbd5e1 !important; }
 #reader video { width: 100% !important; height: 100% !important; object-fit: cover !important; border-radius: 8px; }
-/* Merapikan styling tombol bawaan library agar senada dengan bootstrap */
-#reader button {
-    display: inline-block;
-    font-weight: 500;
-    color: #fff;
-    background-color: #212529;
-    border: 1px solid #212529;
-    padding: 0.375rem 0.75rem;
-    font-size: 0.875rem;
-    border-radius: 0.25rem;
-    margin: 10px 5px;
-    cursor: pointer;
-    transition: 0.2s;
-}
-#reader button:hover {
-    background-color: #343a40;
-}
+#reader button { display: inline-block; font-weight: 500; color: #fff; background-color: #212529; border: 1px solid #212529; padding: 0.375rem 0.75rem; font-size: 0.875rem; border-radius: 0.25rem; margin: 10px 5px; cursor: pointer; transition: 0.2s; }
+#reader button:hover { background-color: #343a40; }
 </style>
 
-<?php
-include 'template/footer.php';
-?>
+<?php include 'template/footer.php'; ?>

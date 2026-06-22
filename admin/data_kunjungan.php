@@ -12,14 +12,15 @@ $page = 'data_kunjungan';
 include 'template/header.php';
 include 'template/sidebar.php';
 
-// PAKSA SEMBUNYIKAN LOADER CSS (Anti-stuck untuk div.loader-bg)
+// PAKSA SEMBUNYIKAN LOADER CSS
 echo '<style>.loader-bg, .preloader, #pc-loader, .pc-loader { display: none !important; visibility: hidden !important; opacity: 0 !important; }</style>';
 
 // ---------------------------------------------------------
-// LOGIC PHP (HAPUS & SELESAI) - AMAN DENGAN ISSET CHECK
+// LOGIC PHP (HANYA HAPUS DATA) 
 // ---------------------------------------------------------
 if (isset($koneksi)) {
-  // A. HAPUS DATA
+  
+  // A. HAPUS DATA PERMANEN
   if (isset($_GET['aksi']) && $_GET['aksi'] == 'hapus') {
     $id = mysqli_real_escape_string($koneksi, $_GET['id']);
 
@@ -172,16 +173,20 @@ if (isset($koneksi)) {
                       </td>
                       <td class="text-center"><?= $status_qr_html; ?></td>
                       <td class="text-center">
-                        <div class="d-flex gap-1 justify-content-center">
-                          <a href="detail_kunjungan.php?id=<?= $d['id_kunjungan']; ?>" class="btn btn-dark btn-sm">
-                            <i class="ti ti-file-text me-1"></i>Detail
+                        <div class="d-flex gap-1 justify-content-center flex-wrap">
+                          
+                          <a href="detail_kunjungan.php?id=<?= $d['id_kunjungan']; ?>" class="btn btn-dark btn-sm" title="Detail">
+                            <i class="ti ti-file-text"></i> Detail
                           </a>
-                          <a href="input_spt.php?id=<?= $d['id_kunjungan']; ?>" class="btn btn-outline-dark btn-sm <?= ($status == 'pending' || $status == 'batal') ? 'disabled opacity-50' : ''; ?>">
-                            <i class="ti ti-file-description me-1"></i>Input SPT
+
+                          <a href="input_spt.php?id=<?= $d['id_kunjungan']; ?>" class="btn btn-outline-dark btn-sm <?= ($status == 'pending' || $status == 'batal') ? 'disabled opacity-50' : ''; ?>" title="Input SPT">
+                            <i class="ti ti-file-description"></i> SPT
                           </a>
-                          <a href="data_kunjungan.php?aksi=hapus&id=<?= $d['id_kunjungan']; ?>" class="btn btn-danger btn-sm" onclick="return confirm('Hapus permanen arsip kunjungan ini?')">
-                            <i class="ti ti-trash me-1"></i>Hapus
+                          
+                          <a href="data_kunjungan.php?aksi=hapus&id=<?= $d['id_kunjungan']; ?>" class="btn btn-danger btn-sm" onclick="return confirm('Hapus permanen arsip kunjungan ini?')" title="Hapus">
+                            <i class="ti ti-trash"></i>
                           </a>
+                          
                         </div>
                       </td>
                     </tr>

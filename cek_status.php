@@ -83,7 +83,7 @@ if (isset($_POST['btn_cek']) || isset($_GET['kode'])) {
                             <div class="input-group mb-3">
                                 <input type="text" name="kode_booking" class="form-control form-control-lg text-center border-dark"
                                     placeholder="REQ-..."
-                                    value="<?= isset($_POST['kode_booking']) ? $_POST['kode_booking'] : (isset($_GET['kode']) ? $_GET['kode'] : '') ?>"
+                                    value="<?= isset($_POST['kode_booking']) ? htmlspecialchars($_POST['kode_booking']) : (isset($_GET['kode']) ? htmlspecialchars($_GET['kode']) : '') ?>"
                                     required>
                                 <button class="btn btn-dark px-4" type="submit" name="btn_cek">
                                     [ Cek Status ]
@@ -110,63 +110,77 @@ if (isset($_POST['btn_cek']) || isset($_GET['kode'])) {
 
                     <div class="card-header d-flex justify-content-between align-items-center 
                         <?php
-                            if ($data['status_kegiatan'] == 'pending') echo 'bg-warning';
-                            elseif ($data['status_kegiatan'] == 'dijadwalkan') echo 'bg-success';
-                            elseif ($data['status_kegiatan'] == 'selesai') echo 'bg-info';
+                            $status_kunjungan = strtolower($data['status_kegiatan']);
+                            if ($status_kunjungan == 'pending') echo 'bg-warning';
+                            elseif ($status_kunjungan == 'dijadwalkan') echo 'bg-primary';
+                            elseif ($status_kunjungan == 'sedang berkunjung') echo 'bg-info';
+                            elseif ($status_kunjungan == 'selesai') echo 'bg-success';
                             else echo 'bg-danger';
                         ?> text-dark border-bottom border-dark">
                         
-                        <h5 class="mb-0 fw-bold <?php if($data['status_kegiatan'] == 'dijadwalkan' || $data['status_kegiatan'] == 'batal') echo 'text-white'; ?>">
-                            Status: <?= strtoupper($data['status_kegiatan']); ?>
+                        <h5 class="mb-0 fw-bold <?php if(in_array($status_kunjungan, ['dijadwalkan', 'sedang berkunjung', 'batal'])) echo 'text-white'; ?>">
+                            Status: <?= strtoupper(str_replace('_', ' ', $status_kunjungan)); ?>
                         </h5>
-                        <span class="badge bg-white text-dark border border-dark f-14 px-3 py-2"><?= $data['kode_booking']; ?></span>
+                        <span class="badge bg-white text-dark border border-dark f-14 px-3 py-2"><?= htmlspecialchars($data['kode_booking']); ?></span>
                     </div>
 
                     <div class="card-body p-4">
 
                         <div class="text-center mb-4">
-                            <?php if ($data['status_kegiatan'] == 'pending'): ?>
-                            <i class="ti ti-clock text-warning" style="font-size: 4rem;"></i>
-                            <h3 class="mt-2 fw-bold">Sedang Diverifikasi</h3>
-                            <p class="text-muted">Mohon menunggu, admin sedang mengecek ketersediaan jadwal pejabat dan ruangan.</p>
-
-                            <?php elseif ($data['status_kegiatan'] == 'dijadwalkan'): ?>
-                            <h3 class="mt-2 fw-bold text-success"><i class="ti ti-circle-check me-2"></i>Kunjungan Disetujui!</h3>
-                            <p class="text-muted mb-3">Tunjukkan E-Ticket QR Code ini kepada petugas Keamanan saat kedatangan.</p>
                             
-                            <div class="qr-ticket-box mb-3 bg-light">
-                                <?php 
-                                    // PERBAIKAN: Logika Cek QR Code Lokal vs API
-                                    $qr_path = "";
-                                    if (!empty($data['qr_code_path']) && file_exists($data['qr_code_path'])) {
-                                        // Jika file lokal ada, pakai file lokal
-                                        $qr_path = $data['qr_code_path'];
-                                    } else {
-                                        // Jika file lokal belum ada, generate langsung dari API
-                                        $qr_path = "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=" . urlencode($data['kode_booking']);
-                                    }
-                                ?>
-                                <img src="<?= $qr_path ?>" alt="QR Code E-Ticket" style="width: 150px; height: 150px; object-fit: contain;">
-                                <div class="mt-2 fw-bold"><?= $data['kode_booking']; ?></div>
-                            </div>
-                            <br>
-                            <a href="cetak_tiket.php?kode=<?= $data['kode_booking']; ?>" target="_blank" class="btn btn-dark mt-2 btn-sm px-3">
-                                <i class="ti ti-printer me-1"></i> Cetak E-Ticket
-                            </a>
+                            <?php if ($status_kunjungan == 'pending'): ?>
+                                <i class="ti ti-clock text-warning" style="font-size: 4rem;"></i>
+                                <h3 class="mt-2 fw-bold">Sedang Diverifikasi</h3>
+                                <p class="text-muted">Mohon menunggu, admin sedang mengecek ketersediaan jadwal pejabat dan ruangan.</p>
 
-                            <?php elseif ($data['status_kegiatan'] == 'selesai'): ?>
-                            <i class="ti ti-flag-checkered text-info" style="font-size: 4rem;"></i>
-                            <h3 class="mt-2 fw-bold">Kunjungan Selesai</h3>
-                            <p class="text-muted">Terima kasih atas kunjungan Anda. Silakan berikan penilaian terhadap pelayanan kami.</p>
-                            
+                            <?php elseif ($status_kunjungan == 'dijadwalkan'): ?>
+                                <h3 class="mt-2 fw-bold text-success"><i class="ti ti-circle-check me-2"></i>Kunjungan Disetujui!</h3>
+                                <p class="text-muted mb-3">Tunjukkan E-Ticket QR Code ini kepada petugas Keamanan saat kedatangan.</p>
+                                
+                                <div class="qr-ticket-box mb-3 bg-light">
+                                    <?php 
+                                        $qr_path = "";
+                                        if (!empty($data['qr_code_path']) && file_exists($data['qr_code_path'])) {
+                                            $qr_path = $data['qr_code_path'];
+                                        } else {
+                                            $qr_path = "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=" . urlencode($data['kode_booking']);
+                                        }
+                                    ?>
+                                    <img src="<?= $qr_path ?>" alt="QR Code E-Ticket" style="width: 150px; height: 150px; object-fit: contain;">
+                                    <div class="mt-2 fw-bold"><?= $data['kode_booking']; ?></div>
+                                </div>
+                                <br>
+                                <a href="cetak_tiket.php?kode=<?= $data['kode_booking']; ?>" target="_blank" class="btn btn-dark mt-2 btn-sm px-3">
+                                    <i class="ti ti-printer me-1"></i> Cetak E-Ticket
+                                </a>
+
+                            <?php elseif ($status_kunjungan == 'sedang berkunjung'): ?>
+                                <i class="ti ti-building-community text-info" style="font-size: 4rem;"></i>
+                                <h3 class="mt-2 fw-bold text-info">Kunjungan Sedang Berlangsung</h3>
+                                <p class="text-muted mb-3">Selamat datang di DPRD. Harap simpan E-Ticket ini untuk melakukan <b>Check-Out</b> saat kepulangan nanti.</p>
+                                
+                                <div class="qr-ticket-box mb-3 bg-light">
+                                    <?php 
+                                        $qr_path = (!empty($data['qr_code_path']) && file_exists($data['qr_code_path'])) ? $data['qr_code_path'] : "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=" . urlencode($data['kode_booking']);
+                                    ?>
+                                    <img src="<?= $qr_path ?>" alt="QR Code Check-Out" style="width: 150px; height: 150px; object-fit: contain;">
+                                    <div class="mt-2 fw-bold"><?= $data['kode_booking']; ?></div>
+                                </div>
+
+                            <?php elseif ($status_kunjungan == 'selesai'): ?>
+                                <i class="ti ti-flag-checkered text-info" style="font-size: 4rem;"></i>
+                                <h3 class="mt-2 fw-bold">Kunjungan Selesai</h3>
+                                <p class="text-muted">Terima kasih atas kunjungan Anda. Silakan berikan penilaian terhadap pelayanan kami.</p>
+
                             <?php else: ?>
-                            <i class="ti ti-x text-danger" style="font-size: 4rem;"></i>
-                            <h3 class="mt-2 fw-bold text-danger">Kunjungan Dibatalkan</h3>
-                            <div class="alert alert-danger text-start d-inline-block mt-2">
-                                <strong>Alasan Batal:</strong><br>
-                                <?= !empty($data['alasan_pembatalan']) ? $data['alasan_pembatalan'] : 'Dibatalkan oleh sistem/admin.'; ?>
-                            </div>
+                                <i class="ti ti-x text-danger" style="font-size: 4rem;"></i>
+                                <h3 class="mt-2 fw-bold text-danger">Kunjungan Dibatalkan</h3>
+                                <div class="alert alert-danger text-start d-inline-block mt-2">
+                                    <strong>Alasan Batal:</strong><br>
+                                    <?= !empty($data['alasan_pembatalan']) ? htmlspecialchars($data['alasan_pembatalan']) : 'Dibatalkan oleh sistem/admin.'; ?>
+                                </div>
                             <?php endif; ?>
+
                         </div>
 
                         <hr class="border-dashed my-4">
@@ -175,7 +189,7 @@ if (isset($_POST['btn_cek']) || isset($_GET['kode'])) {
                         <div class="row mb-4">
                             <div class="col-md-6 mb-3">
                                 <small class="text-muted fw-bold">Instansi Pemohon</small>
-                                <p class="mb-0 h6"><?= $data['nama_instansi_tamu']; ?></p>
+                                <p class="mb-0 h6"><?= htmlspecialchars($data['nama_instansi_tamu']); ?></p>
                             </div>
                             <div class="col-md-6 mb-3">
                                 <small class="text-muted fw-bold">Tanggal & Waktu Rencana</small>
@@ -186,20 +200,20 @@ if (isset($_POST['btn_cek']) || isset($_GET['kode'])) {
                             </div>
                             <div class="col-md-12">
                                 <small class="text-muted fw-bold">Tujuan / Materi</small>
-                                <p class="mb-0 border p-2 bg-light rounded text-dark"><?= $data['materi_kunjungan']; ?></p>
+                                <p class="mb-0 border p-2 bg-light rounded text-dark"><?= nl2br(htmlspecialchars($data['materi_kunjungan'])); ?></p>
                             </div>
                         </div>
 
-                        <?php if ($data['status_kegiatan'] == 'dijadwalkan' || $data['status_kegiatan'] == 'selesai'): ?>
+                        <?php if (in_array($status_kunjungan, ['dijadwalkan', 'sedang berkunjung', 'selesai'])): ?>
                         <h6 class="fw-bold bg-light p-2 border-start border-4 border-dark">[ Informasi Pelaksanaan ]</h6>
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <small class="text-muted fw-bold">Lokasi Ruangan:</small><br>
-                                <span class="h6"><?= !empty($data['nama_ruangan']) ? $data['nama_ruangan'] : 'Belum ditentukan'; ?></span>
+                                <span class="h6"><?= !empty($data['nama_ruangan']) ? htmlspecialchars($data['nama_ruangan']) : 'Belum ditentukan'; ?></span>
                             </div>
                             <div class="col-md-6 mb-3">
                                 <small class="text-muted fw-bold">Penerima Tamu (PJ):</small><br>
-                                <span class="h6"><?= !empty($data['nama_pj']) ? $data['nama_pj'] : 'Sekretariat DPRD'; ?></span>
+                                <span class="h6"><?= !empty($data['nama_pj']) ? htmlspecialchars($data['nama_pj']) : 'Sekretariat DPRD'; ?></span>
                             </div>
                         </div>
                         <?php endif; ?>
@@ -208,13 +222,13 @@ if (isset($_POST['btn_cek']) || isset($_GET['kode'])) {
 
                     <div class="card-footer bg-white border-top border-dark text-center p-3 d-flex justify-content-center gap-2">
                         
-                        <?php if ($data['status_kegiatan'] == 'pending' || $data['status_kegiatan'] == 'dijadwalkan'): ?>
+                        <?php if (in_array($status_kunjungan, ['pending', 'dijadwalkan'])): ?>
                             <a href="batal_kunjungan.php?kode=<?= $data['kode_booking']; ?>" class="btn btn-outline-danger">
                                 <i class="ti ti-ban me-1"></i> Batalkan Kunjungan
                             </a>
                         <?php endif; ?>
 
-                        <?php if ($data['status_kegiatan'] == 'selesai'): ?>
+                        <?php if ($status_kunjungan == 'selesai'): ?>
                             <a href="feedback.php?id=<?= $data['id_kunjungan']; ?>" class="btn btn-dark">
                                 <i class="ti ti-star me-1"></i> Beri Feedback Pelayanan
                             </a>

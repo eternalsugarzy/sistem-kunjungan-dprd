@@ -1,5 +1,4 @@
 <?php
-// PERBAIKAN: Tambahkan '../' agar sistem mencari koneksi.php di luar folder admin/
 include '../koneksi.php';
 
 $kode_booking = isset($_GET['kode']) ? mysqli_real_escape_string($koneksi, $_GET['kode']) : '';
@@ -27,8 +26,14 @@ $tanggal = date('d M Y', strtotime($data['tgl_kunjungan']));
 $ruangan = !empty($data['nama_ruangan']) ? $data['nama_ruangan'] : 'Belum ditentukan';
 $batas_waktu = !empty($data['batas_waktu_kunjungan']) ? date('H:i', strtotime($data['batas_waktu_kunjungan'])) . " WITA" : '15:00 WITA';
 
-// PERBAIKAN: Tambahkan '../' pada path QR Code dan Assets karena file ini di dalam folder admin/
-$qr_path = !empty($data['qr_code_path']) ? '../' . $data['qr_code_path'] : '../assets/images/sample-qr.png';
+// PERBAIKAN LOGIKA QR CODE: Prioritaskan file lokal, jika kosong gunakan API (tanpa ../ karena URL eksternal)
+$qr_path = "";
+if (!empty($data['qr_code_path']) && file_exists("../" . $data['qr_code_path'])) {
+    $qr_path = "../" . $data['qr_code_path'];
+} else {
+    // API pihak ketiga untuk menghasilkan QR Code on-the-fly
+    $qr_path = "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=" . urlencode($kode_booking);
+}
 ?>
 
 <!doctype html>
@@ -78,9 +83,9 @@ $qr_path = !empty($data['qr_code_path']) ? '../' . $data['qr_code_path'] : '../a
         
         /* Menghilangkan elemen yang tidak perlu saat di-print */
         @media print {
-            body { background: white; }
+            body { background: white !important; }
             .no-print { display: none !important; }
-            .id-card { box-shadow: none; margin-top: 0; }
+            .id-card { box-shadow: none !important; margin-top: 0; }
         }
     </style>
 </head>
@@ -103,7 +108,7 @@ $qr_path = !empty($data['qr_code_path']) ? '../' . $data['qr_code_path'] : '../a
                     <img src="<?= $qr_path; ?>" alt="QR Code" style="width: 100%; height: 100%; object-fit: contain;">
                 </div>
                 
-                <h5 class="fw-bold mb-0 text-uppercase"><?= $instansi; ?></h5>
+                <h5 class="fw-bold mb-0 text-uppercase"><?= htmlspecialchars($instansi); ?></h5>
                 <p class="text-muted mb-2">Kode: <strong><?= $kode_booking; ?></strong></p>
                 
                 <hr class="border-dashed my-2">
@@ -113,7 +118,7 @@ $qr_path = !empty($data['qr_code_path']) ? '../' . $data['qr_code_path'] : '../a
                     <div class="col-7">: <?= $tanggal; ?></div>
                     
                     <div class="col-5 text-muted fw-bold">Tujuan</div>
-                    <div class="col-7">: <?= $ruangan; ?></div>
+                    <div class="col-7">: <?= htmlspecialchars($ruangan); ?></div>
                     
                     <div class="col-5 text-muted fw-bold">Batas Waktu</div>
                     <div class="col-7 text-danger fw-bold">: <?= $batas_waktu; ?></div>
@@ -123,6 +128,7 @@ $qr_path = !empty($data['qr_code_path']) ? '../' . $data['qr_code_path'] : '../a
                 Harap dikembalikan/checkout sebelum batas waktu.
             </div>
         </div>
+        
         <div class="text-center mt-4 no-print d-flex justify-content-center gap-2">
             <a href="scan_qr.php" class="btn btn-outline-dark">[ Kembali ke Scanner ]</a>
             <button onclick="window.print()" class="btn btn-dark">

@@ -109,18 +109,18 @@ if (isset($_GET['aksi']) && $_GET['aksi'] == 'hapus') {
 <?php if (!isset($_GET['id'])) { ?>
     <div class="row">
       <div class="col-sm-12">
-        <div class="alert alert-primary d-flex align-items-center" role="alert">
+        <div class="alert alert-primary d-flex align-items-center shadow-sm" role="alert">
             <i class="ti ti-info-circle me-2 f-20"></i>
             <div>Pilih jadwal kunjungan instansi yang melaksanakan agenda kedatangan hari ini untuk mengisi daftar kehadiran.</div>
         </div>
-        <div class="card">
-          <div class="card-header">
-            <h5>Jadwal Kunjungan Siap Laksana</h5>
+        <div class="card shadow-sm border-dark">
+          <div class="card-header bg-dark text-white">
+            <h5 class="mb-0 text-white"><i class="ti ti-address-book me-2"></i>Jadwal Kunjungan Siap Laksana</h5>
           </div>
           <div class="card-body p-0">
             <div class="table-responsive">
               <table class="table table-hover mb-0 align-middle">
-                <thead class="table-dark">
+                <thead class="table-light border-bottom border-dark">
                   <tr>
                     <th>Tgl &amp; Jam</th>
                     <th>Kode Booking</th>
@@ -131,23 +131,40 @@ if (isset($_GET['aksi']) && $_GET['aksi'] == 'hapus') {
                 </thead>
                 <tbody>
                   <?php
-                  $query = mysqli_query($koneksi, "SELECT * FROM kunjungan WHERE status_kegiatan='dijadwalkan' OR status_kegiatan='selesai' ORDER BY tgl_kunjungan DESC");
+                  // PERBAIKAN QUERY: Menambahkan 'sedang berkunjung' ke dalam urutan filter.
+                  // ORDER BY FIELD digunakan agar yang 'sedang berkunjung' muncul paling atas.
+                  $query = mysqli_query($koneksi, "
+                      SELECT * FROM kunjungan 
+                      WHERE status_kegiatan IN ('dijadwalkan', 'sedang berkunjung', 'selesai') 
+                      ORDER BY FIELD(status_kegiatan, 'sedang berkunjung', 'dijadwalkan', 'selesai'), tgl_kunjungan DESC
+                  ");
+
                   if ($query && mysqli_num_rows($query) > 0) {
                       while ($d = mysqli_fetch_array($query)) {
+                          $stat = strtolower($d['status_kegiatan']);
+                          
+                          // Penentuan Warna Badge Dinamis
+                          if ($stat == 'sedang berkunjung') {
+                              $badge_status = '<span class="badge bg-info text-white"><i class="ti ti-loader rotate-refresh me-1"></i>Sedang Berkunjung</span>';
+                          } elseif ($stat == 'dijadwalkan') {
+                              $badge_status = '<span class="badge bg-primary">Dijadwalkan</span>';
+                          } else {
+                              $badge_status = '<span class="badge bg-success">Selesai</span>';
+                          }
                   ?>
                   <tr>
                     <td>
-                        <span class="fw-bold"><i class="ti ti-calendar me-1"></i><?= date('d-m-Y', strtotime($d['tgl_kunjungan'])); ?></span><br>
-                        <span class="badge bg-light-secondary text-dark mt-1"><?= htmlspecialchars($d['waktu_kunjungan']); ?> WITA</span>
+                        <span class="fw-bold"><i class="ti ti-calendar me-1"></i><?= date('d M Y', strtotime($d['tgl_kunjungan'])); ?></span><br>
+                        <span class="badge bg-light-secondary text-dark mt-1 border"><?= substr($d['waktu_kunjungan'], 0, 5); ?> WITA</span>
                     </td>
-                    <td class="font-monospace fw-bold text-primary"><?= htmlspecialchars($d['kode_booking']); ?></td>
+                    <td class="font-monospace fw-bold text-dark"><?= htmlspecialchars($d['kode_booking']); ?></td>
                     <td>
                         <h6 class="mb-0 fw-bold"><?= htmlspecialchars($d['nama_instansi_tamu']); ?></h6>
                         <small class="text-muted"><?= htmlspecialchars($d['materi_kunjungan']); ?></small>
                     </td>
-                    <td><span class="badge bg-primary">Siap Laksana</span></td>
+                    <td><?= $badge_status; ?></td>
                     <td class="text-center">
-                        <a href="buku_tamu.php?id=<?= $d['id_kunjungan']; ?>" class="btn btn-primary btn-sm w-100">
+                        <a href="buku_tamu.php?id=<?= $d['id_kunjungan']; ?>" class="btn btn-dark btn-sm w-100 fw-bold">
                             <i class="ti ti-pencil me-1"></i>Isi Buku Tamu
                         </a>
                     </td>
@@ -155,7 +172,7 @@ if (isset($_GET['aksi']) && $_GET['aksi'] == 'hapus') {
                   <?php 
                       }
                   } else {
-                      echo '<tr><td colspan="5" class="text-center text-muted py-4">Tidak ada jadwal kunjungan aktif untuk hari ini.</td></tr>';
+                      echo '<tr><td colspan="5" class="text-center text-muted py-4"><i class="ti ti-folder-off f-24 d-block mb-2"></i>Tidak ada jadwal kunjungan aktif untuk saat ini.</td></tr>';
                   }
                   ?>
                 </tbody>
@@ -171,28 +188,40 @@ if (isset($_GET['aksi']) && $_GET['aksi'] == 'hapus') {
     // MODE 2: FORM INPUT PESERTA & DAFTAR HADIR REAL-TIME
     // ================================================================
     $id_kunjungan = mysqli_real_escape_string($koneksi, $_GET['id']);
-    $q_info = mysqli_query($koneksi, "SELECT * FROM kunjungan WHERE id_kunjungan='$id_kunjungan'");
+    
+    // PERBAIKAN: Join dengan ruangan agar nama ruangan tampil valid
+    $q_info = mysqli_query($koneksi, "
+        SELECT k.*, r.nama_ruangan 
+        FROM kunjungan k 
+        LEFT JOIN ruangan r ON k.id_ruangan = r.id_ruangan 
+        WHERE k.id_kunjungan='$id_kunjungan'
+    ");
     $info = mysqli_fetch_array($q_info);
     
-    $booking_code = $info['kode_booking'] ?? 'REQ-2025-B002';
-    $instansi_name = $info['nama_instansi_tamu'] ?? 'Setwan Kab. Banjar';
-    $tgl_kunjungan = isset($info['tgl_kunjungan']) ? date('d Des Y', strtotime($info['tgl_kunjungan'])) : '12 Des 2025';
-    $waktu_ops = $info['waktu_kunjungan'] ?? '10:00';
-    $ruangan_ops = 'Ruang Komisi 3';
+    if(!$info) {
+        echo "<script>alert('Data kunjungan tidak ditemukan!'); window.location.href='buku_tamu.php';</script>";
+        exit;
+    }
+
+    $booking_code = $info['kode_booking'];
+    $instansi_name = $info['nama_instansi_tamu'];
+    $tgl_kunjungan = date('d F Y', strtotime($info['tgl_kunjungan']));
+    $waktu_ops = substr($info['waktu_kunjungan'], 0, 5);
+    $ruangan_ops = !empty($info['nama_ruangan']) ? $info['nama_ruangan'] : 'Menunggu Arahan';
 ?>
     <div class="row mb-3">
         <div class="col-12">
-            <div class="bg-light-secondary text-dark border border-secondary p-2 rounded text-center font-monospace fw-bold" style="font-size: 12px;">
-                Jadwal Aktif: <?= $booking_code; ?> — <?= $instansi_name; ?> | <?= $tgl_kunjungan; ?>, <?= $waktu_ops; ?> WITA | <?= $ruangan_ops; ?>
+            <div class="bg-dark text-white border border-dark p-2 rounded text-center fw-bold shadow-sm" style="font-size: 13px;">
+                Jadwal Aktif: <span class="text-warning"><?= $booking_code; ?></span> — <?= $instansi_name; ?> | <?= $tgl_kunjungan; ?>, <?= $waktu_ops; ?> WITA | <?= $ruangan_ops; ?>
             </div>
         </div>
     </div>
 
     <div class="row">
         <div class="col-xl-5 col-md-12 mb-4">
-            <div class="card border border-dark h-100">
-                <div class="card-header bg-white border-bottom-dark py-3">
-                    <h5 class="mb-0 fw-bold text-dark font-monospace">[ Input Peserta Hadir ]</h5>
+            <div class="card border border-dark shadow-sm h-100">
+                <div class="card-header bg-light border-bottom border-dark py-3">
+                    <h5 class="mb-0 fw-bold text-dark"><i class="ti ti-user-plus me-2"></i>Input Peserta Hadir</h5>
                 </div>
                 <div class="card-body">
                     <form method="POST" enctype="multipart/form-data" id="formSignature">
@@ -200,85 +229,84 @@ if (isset($_GET['aksi']) && $_GET['aksi'] == 'hapus') {
                         
                         <div class="mb-2">
                             <label class="form-label text-dark fw-bold mb-1" style="font-size:13px;">Nama Peserta *</label>
-                            <input type="text" name="nama_peserta" class="form-control form-control-sm" placeholder="Nama Lengkap" required autofocus>
+                            <input type="text" name="nama_peserta" class="form-control form-control-sm border-dark" placeholder="Nama Lengkap" required autofocus>
                         </div>
                         
                         <div class="mb-2">
                             <label class="form-label text-dark fw-bold mb-1" style="font-size:13px;">Asal Instansi *</label>
-                            <input type="text" class="form-control form-control-sm bg-light" value="<?= htmlspecialchars($instansi_name); ?>" readonly>
+                            <input type="text" class="form-control form-control-sm border-dark bg-light" value="<?= htmlspecialchars($instansi_name); ?>" readonly>
                         </div>
                         
                         <div class="mb-2">
                             <label class="form-label text-dark fw-bold mb-1" style="font-size:13px;">Jabatan *</label>
-                            <input type="text" name="jabatan_peserta" class="form-control form-control-sm" placeholder="Contoh: Anggota / Staf" required>
+                            <input type="text" name="jabatan_peserta" class="form-control form-control-sm border-dark" placeholder="Contoh: Anggota / Staf" required>
                         </div>
 
                         <div class="mb-3">
                             <label class="form-label text-dark fw-bold mb-1" style="font-size:13px;">Nomor HP</label>
-                            <input type="text" name="no_hp" class="form-control form-control-sm" placeholder="08xx-xxxx-xxxx">
+                            <input type="text" name="no_hp" class="form-control form-control-sm border-dark" placeholder="08xx-xxxx-xxxx">
                         </div>
 
-                        <div class="mb-3">
+                        <div class="mb-3 border border-dark p-2 rounded bg-light">
                             <div class="d-flex justify-content-between align-items-center mb-1">
                                 <label class="form-label text-dark fw-bold mb-0" style="font-size:13px;">Tanda Tangan Digital *</label>
-                                <span class="badge bg-light-dark text-dark border border-dark" style="font-size: 8px; font-weight:700;">DI PERBARUI</span>
                             </div>
                             
                             <ul class="nav nav-tabs tabs-mini mb-2" id="ttdTab" role="tablist">
                                 <li class="nav-item" role="presentation">
-                                    <button class="nav-link active py-1" id="draw-tab" data-bs-toggle="tab" data-bs-target="#draw-panel" type="button" role="tab">[-] Gambar</button>
+                                    <button class="nav-link active py-1 border-dark" id="draw-tab" data-bs-toggle="tab" data-bs-target="#draw-panel" type="button" role="tab">[-] Gambar</button>
                                 </li>
                                 <li class="nav-item" role="presentation">
-                                    <button class="nav-link py-1" id="upload-tab" data-bs-toggle="tab" data-bs-target="#upload-panel" type="button" role="tab">[↑] Upload</button>
+                                    <button class="nav-link py-1 border-dark" id="upload-tab" data-bs-toggle="tab" data-bs-target="#upload-panel" type="button" role="tab">[↑] Upload</button>
                                 </li>
                             </ul>
 
-                            <div class="tab-content border rounded bg-white p-2" style="min-height: 140px;">
+                            <div class="tab-content border border-dark rounded bg-white p-2" style="min-height: 140px;">
                                 <div class="tab-pane fade show active text-center" id="draw-panel" role="tabpanel">
-                                    <small class="text-muted d-block mb-1">Klik tahan &amp; gerak mouse/sentuhan untuk menggambar TTD:</small>
-                                    <canvas id="signature-pad" class="border border-secondary rounded bg-light" style="width: 100%; height: 110px; cursor: crosshair;"></canvas>
-                                    <button type="button" id="clear-btn" class="btn btn-sm btn-light border text-danger font-monospace py-0 px-2 mt-1" style="font-size:11px;">[X] Hapus Canvas</button>
+                                    <small class="text-muted d-block mb-1">Klik tahan &amp; gerak sentuhan untuk menggambar TTD:</small>
+                                    <canvas id="signature-pad" class="border border-secondary rounded bg-light" style="width: 100%; height: 110px; cursor: crosshair; touch-action: none;"></canvas>
+                                    <button type="button" id="clear-btn" class="btn btn-sm btn-light border border-dark text-danger font-monospace py-0 px-2 mt-1" style="font-size:11px;">[X] Hapus Canvas</button>
                                     <input type="hidden" name="ttd_canvas" id="ttd_canvas_input">
                                 </div>
                                 <div class="tab-pane fade" id="upload-panel" role="tabpanel">
                                     <small class="text-muted d-block mb-2">Pilih file gambar hasil foto/scan tanda tangan asli:</small>
-                                    <input type="file" name="ttd_file" class="form-control form-control-sm" accept="image/*">
-                                    <small class="text-muted d-block mt-1 font-italic" style="font-size: 10px;">Format: .PNG / .JPG (Maks 2MB)</small>
+                                    <input type="file" name="ttd_file" class="form-control form-control-sm border-dark" accept="image/*">
+                                    <small class="text-muted d-block mt-1 font-italic" style="font-size: 10px;">Format: .PNG / .JPG</small>
                                 </div>
                             </div>
                         </div>
                         
                         <div class="d-grid mt-4">
-                            <button type="submit" name="tambah_peserta" class="btn btn-dark text-white py-2 fw-bold font-monospace" style="border-radius:0;">
-                                [ + Tambahkan Peserta ]
+                            <button type="submit" name="tambah_peserta" class="btn btn-dark text-white py-2 fw-bold" style="border-radius:4px;">
+                                <i class="ti ti-device-floppy me-1"></i> Simpan Data Peserta
                             </button>
                         </div>
                     </form>
                     
                     <div class="mt-3 text-center border-top border-dark pt-3">
-                        <a href="buku_tamu.php" class="btn btn-outline-dark btn-sm w-100 font-monospace" style="border-radius:0;">[ Kembali ke Daftar Jadwal ]</a>
+                        <a href="buku_tamu.php" class="btn btn-outline-dark btn-sm w-100 fw-bold" style="border-radius:4px;"><i class="ti ti-arrow-left me-1"></i> Kembali ke Daftar Jadwal</a>
                     </div>
                 </div>
             </div>
         </div>
 
         <div class="col-xl-7 col-md-12 mb-4">
-            <div class="card border border-dark h-100">
-                <div class="card-header bg-white border-bottom-dark d-flex justify-content-between align-items-center py-2">
-                    <h5 class="mb-0 fw-bold text-dark font-monospace">[ Daftar Hadir Real-time ]</h5>
-                    <a href="cetak_absensi.php?id=<?= $id_kunjungan; ?>" target="_blank" class="btn btn-sm btn-outline-dark font-monospace px-3 fw-bold" style="border-radius:0;">
-                        [ Cetak Absensi ]
+            <div class="card border border-dark shadow-sm h-100">
+                <div class="card-header bg-dark text-white border-bottom border-dark d-flex justify-content-between align-items-center py-2">
+                    <h5 class="mb-0 fw-bold text-white"><i class="ti ti-users me-2"></i>Daftar Hadir Real-time</h5>
+                    <a href="cetak_absensi.php?id=<?= $id_kunjungan; ?>" target="_blank" class="btn btn-sm btn-light text-dark fw-bold">
+                        <i class="ti ti-printer me-1"></i> Cetak Absensi
                     </a>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table table-hover mb-0 align-middle font-blueprint">
-                            <thead class="table-dark">
+                        <table class="table table-hover mb-0 align-middle">
+                            <thead class="table-light border-bottom border-dark">
                                 <tr>
-                                    <th width="8%">No</th>
+                                    <th width="8%" class="text-center">No</th>
                                     <th>Nama &amp; Jabatan</th>
                                     <th>No HP</th>
-                                    <th width="20%">TTD</th>
+                                    <th width="20%" class="text-center">TTD</th>
                                     <th class="text-center" width="10%">Aksi</th>
                                 </tr>
                             </thead>
@@ -291,54 +319,33 @@ if (isset($_GET['aksi']) && $_GET['aksi'] == 'hapus') {
                                     while($t = mysqli_fetch_array($q_tamu)){
                                 ?>
                                 <tr>
-                                    <td><?= $no++; ?></td>
+                                    <td class="text-center"><?= $no++; ?></td>
                                     <td>
                                         <h6 class="mb-0 fw-bold text-dark"><?= htmlspecialchars($t['nama_peserta']); ?></h6>
                                         <small class="text-muted"><em><?= htmlspecialchars($t['jabatan_peserta']); ?></em></small>
                                     </td>
                                     <td class="font-monospace text-muted" style="font-size:12px;"><?= htmlspecialchars($t['no_hp'] ?: '-'); ?></td>
-                                    <td>
+                                    <td class="text-center">
                                         <?php if(!empty($t['tanda_tangan'])): ?>
-                                            <div class="text-center bg-white border rounded p-1" style="max-width: 80px;">
+                                            <div class="d-inline-block bg-white border border-secondary rounded p-1" style="max-width: 80px;">
                                                 <img src="../uploads/ttd/<?= $t['tanda_tangan']; ?>" alt="TTD" style="height: 30px; object-fit: contain;">
-                                                <div class="text-success" style="font-size: 8px; font-weight:700;"><i class="ti ti-check"></i> Valid</div>
                                             </div>
                                         <?php else: ?>
-                                            <span class="badge bg-light text-muted">-</span>
+                                            <span class="badge bg-light text-muted border">-</span>
                                         <?php endif; ?>
                                     </td>
                                     <td class="text-center">
                                         <a href="buku_tamu.php?aksi=hapus&id_tamu=<?= $t['id_tamu']; ?>&id_kunjungan=<?= $id_kunjungan; ?>" 
-                                           class="btn btn-sm btn-light text-danger border" 
+                                           class="btn btn-sm btn-danger" 
                                            onclick="return confirm('Hapus nama peserta ini?')" title="Hapus">
-                                            <i class="ti ti-square-x-filled"></i>
+                                            <i class="ti ti-trash"></i>
                                         </a>
                                     </td>
                                 </tr>
                                 <?php 
                                     } 
                                 } else {
-                                    // REPLIKA DEFAULT DATA SESUAI MOCKUP GAMBAR KANAN JIKA DATA DI DB KOSONG
-                                    $mock_tamu = [
-                                        ['Ahmad Said', 'Anggota', '0895...', '✓ Valid'],
-                                        ['Ahmad Rozaq', 'Staf', '0865...', '✓ Valid']
-                                    ];
-                                    foreach($mock_tamu as $index => $m) {
-                                        echo "<tr>
-                                            <td>".($index+1)."</td>
-                                            <td><h6 class='mb-0 fw-bold text-dark'>{$m[0]}</h6><small class='text-muted'><em>{$m[1]}</em></small></td>
-                                            <td class='font-monospace text-muted' style='font-size:12px;'>{$m[2]}</td>
-                                            <td>
-                                                <div class='text-center bg-white border rounded p-1' style='max-width: 80px;'>
-                                                    <div class='text-muted font-monospace' style='font-size:9px; border:1px dashed #bbb;'>ttd.png</div>
-                                                    <div class='text-success' style='font-size: 8px; font-weight:700;'>{$m[3]}</div>
-                                                </div>
-                                            </td>
-                                            <td class='text-center'>
-                                                <button type='button' class='btn btn-sm btn-light text-muted border'>[X]</button>
-                                            </td>
-                                        </tr>";
-                                    }
+                                    echo '<tr><td colspan="5" class="text-center text-muted py-4">Belum ada peserta yang mengisi daftar hadir.</td></tr>';
                                 }
                                 ?>
                             </tbody>
@@ -351,11 +358,13 @@ if (isset($_GET['aksi']) && $_GET['aksi'] == 'hapus') {
 <?php } ?>
 
 <style>
-.border-dark { border: 2px solid #2e2e2e !important; border-radius: 4px !important; }
+.border-dark { border: 2px solid #2e2e2e !important; }
 .border-bottom-dark { border-bottom: 2px solid #2e2e2e !important; }
-.tabs-mini .nav-link { font-size: 11px; font-family: monospace; color: #555; background: #f8f9fa; border: 1px solid #ced4da; margin-right: 3px; }
-.tabs-mini .nav-link.active { background: #2e2e2e !important; color: #fff !important; border-color: #2e2e2e; }
-.font-blueprint { font-family: 'Segoe UI', Arial, sans-serif; }
+.tabs-mini .nav-link { font-size: 11px; font-family: monospace; color: #555; background: #f8f9fa; margin-right: 3px; border-bottom: none;}
+.tabs-mini .nav-link.active { background: #fff !important; color: #000 !important; font-weight: bold; border-bottom: 2px solid white; margin-bottom: -1px; position: relative; z-index: 1;}
+/* Animasi kecil untuk status sedang berkunjung */
+@keyframes spin { 100% { transform: rotate(360deg); } }
+.rotate-refresh { display: inline-block; animation: spin 2s linear infinite; }
 </style>
 
 <script type="text/javascript">
@@ -368,7 +377,7 @@ document.addEventListener("DOMContentLoaded", function() {
     const clearBtn = document.getElementById('clear-btn');
     const ttdInput = document.getElementById('ttd_canvas_input');
 
-    // Menyetel resolusi internal agar gambar tarikan garis tidak pecah
+    // Menyetel resolusi internal
     canvas.width = canvas.offsetWidth;
     canvas.height = canvas.offsetHeight;
 
@@ -406,25 +415,20 @@ document.addEventListener("DOMContentLoaded", function() {
         drawing = false;
     }
 
-    // Event PC Mouse
     canvas.addEventListener('mousedown', startDrawing);
     canvas.addEventListener('mousemove', draw);
     window.addEventListener('mouseup', stopDrawing);
 
-    // Event Layar Sentuh HP / Tablet
-    canvas.addEventListener('touchstart', startDrawing);
-    canvas.addEventListener('touchmove', draw);
+    canvas.addEventListener('touchstart', startDrawing, {passive: false});
+    canvas.addEventListener('touchmove', draw, {passive: false});
     window.addEventListener('touchend', stopDrawing);
 
-    // Tombol Bersihkan Canvas
     clearBtn.addEventListener('click', function() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ttdInput.value = "";
     });
 
-    // Intersept Submit: Konversi gambar canvas ke teks Base64
     form.addEventListener('submit', function() {
-        // Cek apakah canvas kosong (Metode ini mendeteksi jika ada ppi pixel yang berubah warna)
         const blank = document.createElement('canvas');
         blank.width = canvas.width;
         blank.height = canvas.height;
