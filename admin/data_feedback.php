@@ -36,7 +36,13 @@ echo '<style>.loader-bg, .preloader, #pc-loader, .pc-loader { display: none !imp
     <div class="card">
       <div class="card-header d-flex justify-content-between align-items-center">
         <h5>Riwayat Kepuasan Pelayanan Tamu / Pengunjung</h5>
-        <span class="badge bg-light-primary text-primary border font-monospace">Tabel Feedback</span>
+        <div>
+          <!-- TOMBOL REKAP MASSAL BARU -->
+          <a href="cetak_rekap_feedback.php" target="_blank" class="btn btn-sm btn-primary me-2">
+            <i class="ti ti-printer"></i> Cetak Rekap Laporan
+          </a>
+          <span class="badge bg-light-primary text-primary border font-monospace">Tabel Feedback</span>
+        </div>
       </div>
       <div class="card-body p-0">
         <div class="table-responsive">
@@ -44,12 +50,12 @@ echo '<style>.loader-bg, .preloader, #pc-loader, .pc-loader { display: none !imp
             <thead class="table-dark">
               <tr>
                 <th width="5%" class="text-center">No</th>
-                <th width="15%">Kode Booking</th>
-                <th width="25%">Instansi / Lembaga</th>
+                <th width="12%">Kode Booking</th>
+                <th width="23%">Instansi / Lembaga</th>
                 <th width="15%">Nama / Jabatan</th>
                 <th width="12%" class="text-center">Rating Avg</th>
-                <th width="28%">Kritik &amp; Saran</th>
-              </tr>
+                <th width="23%">Kritik &amp; Saran</th>
+                <th width="10%" class="text-center">Aksi</th> </tr>
             </thead>
             <tbody>
               <?php
@@ -57,7 +63,6 @@ echo '<style>.loader-bg, .preloader, #pc-loader, .pc-loader { display: none !imp
               $has_feedback = false;
 
               if (isset($koneksi)) {
-                  // Query menyesuaikan dengan nama kolom riil di phpMyAdmin kamu
                   $query_fb = mysqli_query($koneksi, "
                       SELECT f.*, k.kode_booking, k.nama_instansi_tamu, k.tgl_kunjungan 
                       FROM feedback_kunjungan f
@@ -70,16 +75,10 @@ echo '<style>.loader-bg, .preloader, #pc-loader, .pc-loader { display: none !imp
                       while ($row = mysqli_fetch_assoc($query_fb)) {
                           $booking   = !empty($row['kode_booking']) ? $row['kode_booking'] : '-';
                           $instansi  = !empty($row['nama_instansi_tamu']) ? $row['nama_instansi_tamu'] : 'Umum / Non-Instansi';
-                          
-                          // Pengelompokan Nama dan Jabatan Pengirim
                           $pemberi   = !empty($row['nama_pemberi']) ? htmlspecialchars($row['nama_pemberi']) : 'Anonim';
                           $jabatan   = !empty($row['jabatan_pemberi']) ? ' (' . htmlspecialchars($row['jabatan_pemberi']) . ')' : '';
                           $identitas = $pemberi . $jabatan;
-
-                          // Ambil nilai rating rata-rata dari kolom rating_keseluruhan, beri nilai default 5 jika NULL
                           $bintang   = !empty($row['rating_keseluruhan']) ? intval(round($row['rating_keseluruhan'])) : 5;
-                          
-                          // Menangkap teks kritik dari kolom komentar_saran di DB kamu
                           $saran     = !empty($row['komentar_saran']) ? htmlspecialchars($row['komentar_saran']) : '<span class="text-muted font-italic">Tidak ada komentar/saran</span>';
               ?>
               <tr>
@@ -102,6 +101,11 @@ echo '<style>.loader-bg, .preloader, #pc-loader, .pc-loader { display: none !imp
                         <?= $saran; ?>
                     </p>
                 </td>
+                <td class="text-center">
+                    <a href="cetak_feedback.php?id=<?= $row['id_feedback']; ?>" target="_blank" class="btn btn-sm btn-outline-dark">
+                        <i class="ti ti-printer"></i> Cetak
+                    </a>
+                </td>
               </tr>
               <?php
                       }
@@ -109,12 +113,7 @@ echo '<style>.loader-bg, .preloader, #pc-loader, .pc-loader { display: none !imp
               }
 
               if (!$has_feedback) {
-                  echo '<tr>
-                      <td colspan="6" class="text-center text-muted py-4">
-                          <i class="ti ti-folder-off d-block f-30 mb-2"></i>
-                          Belum ada data feedback / kuesioner yang masuk dari pengunjung.
-                      </td>
-                  </tr>';
+                  echo '<tr><td colspan="7" class="text-center text-muted py-4">Belum ada data feedback.</td></tr>';
               }
               ?>
             </tbody>
