@@ -45,14 +45,14 @@ if (isset($_POST['kirim_pengajuan'])) {
             $file_baru = "SURAT_" . time() . "." . $file_ext;
             $folder_tujuan = "uploads/" . $file_baru;
 
-            // --- TAMBAHAN KODE: CEK FOLDER ---
+            // --- CEK FOLDER ---
             if (!file_exists('uploads')) {
                 mkdir('uploads', 0777, true); // Buat folder jika belum ada
             }
             
             if(move_uploaded_file($file_tmp, $folder_tujuan)){
                 
-                // 4. SIMPAN KE DATABASE (Update penambahan no_hp_pemohon dan id_kategori)
+                // 4. SIMPAN KE DATABASE
                 $query = "INSERT INTO kunjungan 
                           (kode_booking, email_pemohon, no_hp_pemohon, id_kategori, nama_instansi_tamu, alamat_instansi, 
                            tgl_surat_permohonan, tgl_kunjungan, waktu_kunjungan, 
@@ -93,90 +93,141 @@ if (isset($_POST['kirim_pengajuan'])) {
     <link rel="stylesheet" href="assets/fonts/tabler-icons.min.css" />
     <link rel="stylesheet" href="assets/css/style.css" id="main-style-link" />
     <link rel="stylesheet" href="assets/css/style-preset.css" />
+
+    <style>
+        /* --- KUSTOMISASI UKURAN TEKS --- */
+        body {
+            font-size: 1.1rem; 
+        }
+        .form-label {
+            font-size: 1.15rem; 
+            font-weight: 600; 
+            color: #212529;
+            margin-bottom: 0.5rem;
+        }
+        .form-control, .form-select {
+            font-size: 1.1rem; 
+            padding: 0.75rem 1rem; 
+        }
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            padding: 12px 15px !important;
+        }
+        .text-muted {
+            font-size: 0.95rem; 
+        }
+        .btn-besar {
+            font-size: 1.2rem;
+            padding: 12px 25px;
+            font-weight: bold;
+        }
+        .kode-tiket {
+            font-size: 3.5rem; /* Diperbesar sedikit lagi untuk kode tiket */
+            letter-spacing: 2px;
+        }
+        /* Style khusus untuk teks peringatan SIMPAN */
+        .teks-peringatan {
+            font-size: 1.35rem;
+            color: #212529;
+        }
+        .teks-simpan {
+            font-size: 1.8rem;
+            color: #dc3545; /* Merah */
+            font-weight: 900;
+            text-transform: uppercase;
+            text-decoration: underline;
+        }
+    </style>
 </head>
 
 <body class="bg-light">
     
-    <nav class="navbar navbar-expand-md navbar-light bg-white shadow-sm">
+    <nav class="navbar navbar-expand-md navbar-light bg-white shadow-sm py-3">
       <div class="container">
-        <a class="navbar-brand text-dark fw-bold" href="index.php">
-          <img src="assets/images/logo.png" alt="logo" style="height:30px" class="me-2" />
+        <a class="navbar-brand text-dark fw-bold fs-4" href="index.php">
+          <img src="assets/images/logo.png" alt="logo" style="height:35px" class="me-2" />
           SIM-KUNJUNGAN
         </a>
-        <a href="index.php" class="btn btn-sm btn-outline-secondary">Kembali ke Beranda</a>
+        <a href="index.php" class="btn btn-outline-secondary btn-besar fs-6 px-3 py-2">Kembali ke Beranda</a>
       </div>
     </nav>
 
     <div class="container mt-5 mb-5">
         <div class="row justify-content-center">
-            <div class="col-lg-8">
+            <div class="col-lg-9">
                 
                 <?php if($kode_booking_baru != ""): ?>
                 <div class="card shadow border-success mb-4">
                     <div class="card-body text-center p-5">
-                        <div class="avtar avtar-xl bg-light-success text-success mb-3 mx-auto">
-                            <i class="ti ti-check f-40"></i>
+                        <div class="avtar avtar-xl bg-light-success text-success mb-3 mx-auto" style="width: 80px; height: 80px;">
+                            <i class="ti ti-check" style="font-size: 40px;"></i>
                         </div>
-                        <h2 class="mt-3 text-success">Permohonan Terkirim!</h2>
-                        <p class="lead">Mohon simpan Kode Tiket di bawah ini untuk mengecek status:</p>
+                        <h2 class="mt-3 text-success fw-bold">Permohonan Terkirim!</h2>
                         
-                        <div class="alert alert-success d-inline-block px-5 py-3 mt-2">
-                            <h1 class="mb-0 fw-bold"><?= $kode_booking_baru; ?></h1>
+                        <!-- TEKS PERINGATAN YANG DIPERTEGAS -->
+                        <div class="bg-warning bg-opacity-10 border border-warning rounded p-3 mt-4 mb-2 mx-auto" style="max-width: 80%;">
+                            <p class="mb-0 teks-peringatan">
+                                Mohon <span class="teks-simpan">SIMPAN</span> Kode Tiket di bawah ini untuk mengecek status permohonan Anda:
+                            </p>
                         </div>
                         
-                        <p class="mt-3 text-muted">Kami akan memproses permohonan Anda secepatnya.</p>
+                        <div class="alert alert-success d-inline-block px-5 py-4 mt-3 border-2 border-success shadow-sm">
+                            <h1 class="mb-0 fw-bold kode-tiket"><?= $kode_booking_baru; ?></h1>
+                        </div>
+                        
+                        <p class="mt-4 text-dark fs-5">Kami akan memproses permohonan Anda secepatnya.</p>
                         <div class="mt-4">
-                            <a href="cek_status.php" class="btn btn-primary me-2">Cek Status Sekarang</a>
-                            <a href="index.php" class="btn btn-outline-secondary">Kembali ke Beranda</a>
+                            <a href="cek_status.php" class="btn btn-primary btn-besar me-2">Cek Status Sekarang</a>
+                            <a href="index.php" class="btn btn-outline-secondary btn-besar">Kembali</a>
                         </div>
                     </div>
                 </div>
                 <?php endif; ?>
 
                 <?php if($pesan_error != ""): ?>
-                <div class="alert alert-danger d-flex align-items-center mb-4" role="alert">
-                    <i class="ti ti-alert-circle me-2 f-20"></i>
-                    <div>
+                <div class="alert alert-danger d-flex align-items-center mb-4 p-3 border-2 border-danger" role="alert">
+                    <i class="ti ti-alert-circle me-3" style="font-size: 2rem;"></i>
+                    <div class="fs-5">
                         <b>Terjadi Kesalahan:</b> <?= $pesan_error; ?>
                     </div>
                 </div>
                 <?php endif; ?>
 
                 <?php if($kode_booking_baru == ""): ?>
-                <div class="card shadow">
-                    <div class="card-header bg-dark text-white">
-                        <h4 class="mb-0 text-white"><i class="ti ti-file-text me-2"></i>[ Formulir Rencana Kunjungan Kerja ]</h4>
+                <div class="card shadow-lg border-0 rounded-3">
+                    <div class="card-header bg-dark text-white p-4">
+                        <h3 class="mb-0 text-white fw-bold"><i class="ti ti-file-text me-2"></i>[ Formulir Rencana Kunjungan Kerja ]</h3>
                     </div>
-                    <div class="card-body p-4">
+                    <div class="card-body p-4 p-md-5">
                         <form method="POST" enctype="multipart/form-data">
                             
-                            <h5 class="text-dark bg-light p-2 mb-3 border-start border-4 border-dark">1. Data Instansi Pemohon</h5>
-                            <div class="row mb-3">
-                                <div class="col-md-6">
+                            <h4 class="text-dark bg-light mb-4 border-start border-5 border-dark section-title">1. Data Instansi Pemohon</h4>
+                            <div class="row mb-4">
+                                <div class="col-md-6 mb-3 mb-md-0">
                                     <label class="form-label">Nama Instansi / DPRD <span class="text-danger">*</span></label>
                                     <input type="text" name="nama_instansi" class="form-control" placeholder="Contoh: DPRD Kab. Banjar" required>
                                 </div>
                                 <div class="col-md-6">
-                                    <label class="form-label">Email Aktif <span class="badge bg-secondary ms-1">BARU</span> <span class="text-danger">*</span></label>
+                                    <label class="form-label">Email Aktif <span class="badge bg-secondary fs-6 ms-1">BARU</span> <span class="text-danger">*</span></label>
                                     <input type="email" name="email" class="form-control" placeholder="email@instansi.go.id" required>
-                                    <small class="text-muted"><i class="ti ti-info-circle"></i> E-Ticket QR Code dikirim ke sini setelah disetujui Admin</small>
+                                    <div class="text-muted mt-1"><i class="ti ti-info-circle"></i> E-Ticket QR Code dikirim ke sini</div>
                                 </div>
                             </div>
-                            <div class="mb-3">
+                            <div class="mb-4">
                                 <label class="form-label">Alamat Instansi</label>
-                                <textarea name="alamat" class="form-control" rows="2" placeholder="Alamat lengkap instansi pemohon..."></textarea>
+                                <textarea name="alamat" class="form-control" rows="3" placeholder="Alamat lengkap instansi pemohon..."></textarea>
                             </div>
-                            <div class="row mb-3">
-                                <div class="col-md-6">
+                            <div class="row mb-4">
+                                <div class="col-md-6 mb-3 mb-md-0">
                                     <label class="form-label">No HP / WhatsApp CP <span class="text-danger">*</span></label>
                                     <input type="number" name="no_hp" class="form-control" placeholder="08xx-xxxx-xxxx" required>
                                 </div>
                                 <div class="col-md-6">
-                                    <label class="form-label">Kategori Kunjungan <span class="badge bg-secondary ms-1">BARU</span> <span class="text-danger">*</span></label>
+                                    <label class="form-label">Kategori Kunjungan <span class="badge bg-secondary fs-6 ms-1">BARU</span> <span class="text-danger">*</span></label>
                                     <select name="kategori" class="form-select" required>
                                         <option value="">-- Pilih Kategori --</option>
                                         <?php 
-                                        // Looping data kategori dari database
                                         if($kategori_query){
                                             while($row = mysqli_fetch_assoc($kategori_query)): 
                                         ?>
@@ -186,18 +237,18 @@ if (isset($_POST['kirim_pengajuan'])) {
                                         }
                                         ?>
                                     </select>
-                                    <small class="text-muted">Untuk data statistik Laporan Dashboard pimpinan.</small>
+                                    <div class="text-muted mt-1">Untuk keperluan pendataan Sekretariat</div>
                                 </div>
                             </div>
 
-                            <h5 class="text-dark bg-light p-2 mb-3 mt-4 border-start border-4 border-dark">2. Rencana Pelaksanaan</h5>
-                            <div class="row mb-3">
-                                <div class="col-md-4">
+                            <h4 class="text-dark bg-light mb-4 mt-5 border-start border-5 border-dark section-title">2. Rencana Pelaksanaan</h4>
+                            <div class="row mb-4">
+                                <div class="col-md-4 mb-3 mb-md-0">
                                     <label class="form-label">Tanggal Surat</label>
                                     <input type="date" name="tgl_surat" class="form-control" required>
                                 </div>
-                                <div class="col-md-4">
-                                    <label class="form-label">Rencana Tgl Kunjungan <span class="text-danger">*</span></label>
+                                <div class="col-md-4 mb-3 mb-md-0">
+                                    <label class="form-label">Tgl Rencana Kunjungan <span class="text-danger">*</span></label>
                                     <input type="date" name="tgl_kunjungan" class="form-control" required>
                                 </div>
                                 <div class="col-md-4">
@@ -205,9 +256,9 @@ if (isset($_POST['kirim_pengajuan'])) {
                                     <input type="time" name="jam" class="form-control" required>
                                 </div>
                             </div>
-                            <div class="row mb-3">
-                                <div class="col-md-4">
-                                    <label class="form-label">Jumlah Peserta (Orang) <span class="text-danger">*</span></label>
+                            <div class="row mb-4">
+                                <div class="col-md-4 mb-3 mb-md-0">
+                                    <label class="form-label">Jml Peserta (Orang) <span class="text-danger">*</span></label>
                                     <input type="number" name="jumlah" class="form-control" placeholder="0" required>
                                 </div>
                                 <div class="col-md-8">
@@ -216,27 +267,31 @@ if (isset($_POST['kirim_pengajuan'])) {
                                 </div>
                             </div>
 
-                            <h5 class="text-dark bg-light p-2 mb-3 mt-4 border-start border-4 border-dark">3. Berkas Pendukung</h5>
-                            <div class="mb-3 border border-dashed p-3 text-center rounded">
-                                <label class="form-label fw-bold d-block">Upload Surat Permohonan Resmi (PDF/JPG) <span class="text-danger">*</span></label>
-                                <input type="file" name="file_surat" class="form-control w-75 mx-auto mb-2" accept=".pdf,.jpg,.jpeg,.png" required>
-                                <small class="text-muted"><i class="ti ti-upload"></i> Klik atau drag & drop file di sini | Format: PDF, JPG | Maks: 5MB</small>
+                            <h4 class="text-dark bg-light mb-4 mt-5 border-start border-5 border-dark section-title">3. Berkas Pendukung</h4>
+                            <div class="mb-4 border border-2 border-dashed p-4 text-center rounded bg-light">
+                                <label class="form-label fw-bold d-block fs-5 text-dark mb-3">Upload Surat Permohonan Resmi (PDF/JPG) <span class="text-danger">*</span></label>
+                                <input type="file" name="file_surat" class="form-control form-control-lg w-100 mx-auto mb-3" accept=".pdf,.jpg,.jpeg,.png" required>
+                                <div class="text-muted fs-6"><i class="ti ti-upload me-1"></i> Format: PDF, JPG | Maksimal: 5MB</div>
                             </div>
 
-                            <div class="alert alert-secondary d-flex align-items-center mt-3" role="alert">
-                                <i class="ti ti-mail me-2 f-24"></i>
-                                <div>Pastikan email aktif - E-Ticket QR Code dikirim otomatis setelah permohonan disetujui Admin</div>
+                            <div class="alert alert-secondary d-flex align-items-center mt-4 p-3 border-2 border-secondary" role="alert">
+                                <i class="ti ti-mail me-3" style="font-size: 2rem;"></i>
+                                <div class="fs-6">
+                                    <b>Perhatian:</b> Pastikan email aktif - E-Ticket QR Code akan dikirim otomatis ke alamat email setelah permohonan disetujui.
+                                </div>
                             </div>
 
-                            <div class="d-flex justify-content-end gap-2 mt-4">
-                                <button type="reset" class="btn btn-light border">Batal</button>
-                                <button type="submit" name="kirim_pengajuan" class="btn btn-dark">
-                                    [ Kirim Permohonan ]
+                            <div class="d-flex justify-content-end gap-3 mt-5">
+                                <button type="reset" class="btn btn-light border-2 border-secondary btn-besar">Reset Form</button>
+                                <button type="submit" name="kirim_pengajuan" class="btn btn-dark btn-besar">
+                                    <i class="ti ti-send me-2"></i> Kirim Permohonan
                                 </button>
                             </div>
                             
-                            <div class="text-center mt-3">
-                                <small class="text-white bg-dark px-3 py-1 rounded">Kode booking akan dikirim ke email & ditampilkan setelah pengiriman berhasil</small>
+                            <div class="text-center mt-4">
+                                <div class="text-white bg-dark px-4 py-2 rounded d-inline-block fs-6">
+                                    Kode booking akan dikirim ke email & ditampilkan di layar setelah pengiriman berhasil
+                                </div>
                             </div>
 
                         </form>

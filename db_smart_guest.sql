@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Jun 21, 2026 at 02:19 PM
+-- Generation Time: Jun 28, 2026 at 04:32 PM
 -- Server version: 8.0.30
 -- PHP Version: 8.2.31
 
@@ -67,7 +67,9 @@ CREATE TABLE `buku_tamu` (
 --
 
 INSERT INTO `buku_tamu` (`id_tamu`, `id_kunjungan`, `nama_peserta`, `asal_instansi`, `jabatan_peserta`, `no_hp`, `tanda_tangan`, `timestamp_ttd`, `status_ttd`, `waktu_hadir`) VALUES
-(1, 1, 'Junady', 'DPRD Kab.Tala', 'Staf', '08134568789', 'TTD_CANVAS_1781764293_927.png', NULL, 'kosong', '2026-06-18 06:31:33');
+(1, 1, 'Junady', 'DPRD Kab.Tala', 'Staf', '08134568789', 'TTD_CANVAS_1781764293_927.png', NULL, 'kosong', '2026-06-18 06:31:33'),
+(2, 9, 'Ahmad Rozaq', 'DPRD Balangan', 'Staf', '081222333444', 'TTD_CANVAS_1782113788_512.png', NULL, 'kosong', '2026-06-22 07:36:28'),
+(3, 9, 'Enbkoh', 'DPRD Balangan', 'Anggota', '08123456783', 'TTD_CANVAS_1782113805_219.png', NULL, 'kosong', '2026-06-22 07:36:45');
 
 -- --------------------------------------------------------
 
@@ -108,6 +110,13 @@ CREATE TABLE `feedback_kunjungan` (
   `is_anonymous` tinyint(1) DEFAULT '0',
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Dumping data for table `feedback_kunjungan`
+--
+
+INSERT INTO `feedback_kunjungan` (`id_feedback`, `id_kunjungan`, `nama_pemberi`, `jabatan_pemberi`, `rating_pelayanan`, `rating_fasilitas`, `rating_ketepatan_waktu`, `rating_keseluruhan`, `komentar_saran`, `is_anonymous`, `created_at`) VALUES
+(1, 8, 'Saiduns', 'Staff', 5, 5, 5, 5, '', 0, '2026-06-22 07:29:53');
 
 -- --------------------------------------------------------
 
@@ -197,7 +206,9 @@ INSERT INTO `kunjungan` (`id_kunjungan`, `kode_booking`, `email_pemohon`, `no_hp
 (2, 'REQ-2026-798C', 'trinity@mail.com', '487943179', NULL, 'online', 2, '2026-06-01', '2026-06-18', '19:00:00', 'Trinity Scent', 'Jl Pembangunan Hasan Basri', 10, 'Rapat Anggaran 2027', 'SURAT_1781765840.png', NULL, NULL, NULL, NULL, NULL, 1, 1, NULL, 'selesai', NULL, NULL, NULL, 'uploads/qr/QR_REQ-2026-798C.png', 'hadir', '2026-06-18 06:59:15', NULL, NULL, '2026-06-18 06:57:20'),
 (3, 'REQ-2026-2E29', 'admin@mail.com.id', '08123456783', NULL, 'online', 2, '2026-06-08', '2026-06-18', '15:10:00', 'DPRD Provinsi Kalimantan Selatan', 'Jl Lambung Mangkurat', 5, 'Konsultasi Terkait Proyek Jembatan Flyover Kota Banjarbaru', 'SURAT_1781766493.png', NULL, NULL, NULL, NULL, NULL, 1, 1, NULL, 'selesai', NULL, NULL, NULL, 'uploads/qr/QR_REQ-2026-2E29.png', 'hadir', '2026-06-18 08:00:47', NULL, NULL, '2026-06-18 07:08:13'),
 (4, 'REQ-2026-4924', 'uniska.bem@sch.id', '089854123301', NULL, 'online', NULL, '2026-06-08', '2026-06-20', '10:20:00', 'BEM Universitas Islam Kalimantan MAB', 'Jl Adhyaksa', 15, 'Konsultasi MBG', 'SURAT_1781767039.png', NULL, NULL, NULL, NULL, NULL, 1, 1, NULL, 'selesai', NULL, NULL, NULL, 'uploads/qr/QR_REQ-2026-4924.png', 'selesai', '2026-06-18 07:18:26', NULL, '2026-06-18 07:58:57', '2026-06-18 07:17:19'),
-(5, 'REQ-2026-1AE6', 'dispar.bjm@gmail.com', '085474556301', NULL, 'online', 2, '2026-06-10', '2026-06-22', '08:30:00', 'Dinas Pariwisata Kota Banjarmasin', 'Jl Pangeran Hidayatullah Banjarmasin', 7, 'Konsultasi Terkait Destinasi Wisata Kota Banjarmasin', 'SURAT_1781769922.png', NULL, NULL, NULL, NULL, NULL, 1, 1, NULL, 'sedang berkunjung', NULL, NULL, NULL, 'uploads/qr/QR_REQ-2026-1AE6.png', 'hadir', '2026-06-18 08:07:39', NULL, NULL, '2026-06-18 08:05:22');
+(7, 'REQ-2026-2E30', 'admin@mail.com', '081234567890', NULL, 'online', 2, '2026-06-22', '2026-06-30', '07:30:00', 'Dinas Pariwisata Kota Banjarmasin', 'Jl Kocak', 10, 'Konsultasi MBG', 'SURAT_1782112875.png', NULL, NULL, NULL, NULL, NULL, 1, 1, NULL, 'selesai', NULL, NULL, NULL, 'uploads/qr/QR_REQ-2026-2E30.png', 'selesai', '2026-06-22 07:24:14', NULL, '2026-06-22 07:24:45', '2026-06-22 07:21:15'),
+(8, 'REQ-2026-5479', 'admin@mail.com', '08134568789', NULL, 'online', 2, '2026-06-22', '2026-06-29', '15:25:00', 'Dinas Pariwisata Kota Banjarmasin', 'Jl A', 15, 'Rapat Anggaran 2027', 'SURAT_1782113152.png', NULL, NULL, NULL, NULL, NULL, 1, 1, NULL, 'selesai', NULL, NULL, NULL, NULL, 'selesai', '2026-06-22 07:26:30', NULL, '2026-06-22 07:29:32', '2026-06-22 07:25:52'),
+(9, 'REQ-2026-D0C4', 'balangan.dprd@gmail.com', '0856789532100', NULL, 'online', 2, '2026-06-22', '2026-06-30', '09:40:00', 'DPRD Balangan', 'Jl A Yani', 8, 'Rapat Anggaran 2026', 'SURAT_1782113731.png', NULL, NULL, NULL, NULL, NULL, 1, 1, NULL, 'selesai', NULL, NULL, NULL, NULL, 'selesai', '2026-06-22 07:35:57', NULL, '2026-06-22 07:37:26', '2026-06-22 07:35:31');
 
 -- --------------------------------------------------------
 
@@ -284,8 +295,7 @@ CREATE TABLE `spt_tugas` (
 --
 
 INSERT INTO `spt_tugas` (`id_spt`, `id_kunjungan`, `jenis_petugas`, `no_spt`, `tgl_spt`, `nama_pegawai`, `nip`, `jabatan`, `jumlah_ditugaskan`, `file_spt`) VALUES
-(1, 4, 'pendamping', '090/DPRD/BJM/2026', '2026-06-18', 'Ahmad Said, S.Kom', '', 'Kasubbag Humas', 10, NULL),
-(2, 5, 'pendamping', '090/DPRD/BJM/2026', '2026-06-18', 'Ahmad Said, S.Kom', '', 'Kasubbag Humas', 1, NULL);
+(1, 4, 'pendamping', '090/DPRD/BJM/2026', '2026-06-18', 'Ahmad Said, S.Kom', '', 'Kasubbag Humas', 10, NULL);
 
 -- --------------------------------------------------------
 
@@ -410,7 +420,7 @@ ALTER TABLE `admin`
 -- AUTO_INCREMENT for table `buku_tamu`
 --
 ALTER TABLE `buku_tamu`
-  MODIFY `id_tamu` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id_tamu` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `disposisi_kunjungan`
@@ -422,7 +432,7 @@ ALTER TABLE `disposisi_kunjungan`
 -- AUTO_INCREMENT for table `feedback_kunjungan`
 --
 ALTER TABLE `feedback_kunjungan`
-  MODIFY `id_feedback` int NOT NULL AUTO_INCREMENT;
+  MODIFY `id_feedback` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `jadwal_pejabat`
@@ -440,7 +450,7 @@ ALTER TABLE `kategori_kunjungan`
 -- AUTO_INCREMENT for table `kunjungan`
 --
 ALTER TABLE `kunjungan`
-  MODIFY `id_kunjungan` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id_kunjungan` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 
 --
 -- AUTO_INCREMENT for table `penanggung_jawab`

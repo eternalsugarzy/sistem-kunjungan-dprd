@@ -162,13 +162,26 @@ $tgl_format   = date('d F Y', strtotime($tgl_kunjungan));
                                         </td>
                                     </tr>
                                     <tr>
-                                        <td class="text-muted fw-normal">Status</td>
-                                        <td>: 
+                                        <td class="text-muted fw-normal align-top pt-2">Status</td>
+                                        <td class="pt-2">: 
                                             <?php 
-                                            if($status == 'pending') echo '<span class="badge bg-warning">Pending</span>';
-                                            elseif($status == 'dijadwalkan') echo '<span class="badge bg-primary">Dijadwalkan</span>';
-                                            elseif($status == 'selesai') echo '<span class="badge bg-success">Selesai</span>';
-                                            else echo '<span class="badge bg-danger">Batal</span>';
+                                            if($status == 'pending') {
+                                                echo '<span class="badge bg-warning">Pending</span>';
+                                            } elseif($status == 'dijadwalkan') {
+                                                echo '<span class="badge bg-primary">Dijadwalkan</span>';
+                                            } elseif($status == 'sedang berkunjung') {
+                                                echo '<span class="badge bg-info text-white">Sedang Berkunjung</span>';
+                                            } elseif($status == 'selesai') {
+                                                echo '<span class="badge bg-success">Selesai</span>';
+                                            } else {
+                                                echo '<span class="badge bg-danger mb-2">Batal</span>';
+                                                
+                                                // Menangkap dan menampilkan alasan pembatalan
+                                                $alasan = ($d && !empty($d['alasan_pembatalan'])) ? htmlspecialchars($d['alasan_pembatalan']) : 'Tidak ada keterangan/Dibatalkan sepihak.';
+                                                echo '<div class="text-danger mt-1 p-2 rounded bg-danger bg-opacity-10 border border-danger border-dashed" style="font-size: 13px; max-width: 90%;">';
+                                                echo '<strong>Alasan Batal:</strong><br>' . nl2br($alasan);
+                                                echo '</div>';
+                                            }
                                             ?>
                                         </td>
                                     </tr>
