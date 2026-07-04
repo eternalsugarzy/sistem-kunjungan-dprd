@@ -36,7 +36,7 @@ if (isset($_POST['terima_kunjungan'])) {
 // B. PROSES TOLAK KUNJUNGAN
 if (isset($_GET['aksi']) && $_GET['aksi'] == 'tolak') {
     $id = $_GET['id'];
-    $query_tolak = "UPDATE kunjungan SET status_kegiatan='batal' WHERE id_kunjungan='$id'";
+    $query_tolak = "UPDATE kunjungan SET status_kegiatan='batal', alasan_pembatalan='Ditolak oleh Admin pada saat Verifikasi', tgl_pembatalan=NOW() WHERE id_kunjungan='$id'";
     
     if (mysqli_query($koneksi, $query_tolak)) {
         echo "<script>alert('Permohonan Ditolak.'); window.location='verifikasi_kunjungan.php';</script>";

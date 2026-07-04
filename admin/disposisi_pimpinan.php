@@ -32,11 +32,18 @@ if (isset($_POST['proses_disposisi'])) {
     } else {
         $status_kegiatan = ($keputusan == 'setuju') ? 'dijadwalkan' : 'batal';
         
+        // Jika ditolak lewat disposisi, catat alasan & waktu pembatalan agar tercatat di Laporan Kunjungan Batal
+        $extra_batal = "";
+        if ($status_kegiatan == 'batal') {
+            $extra_batal = ", alasan_pembatalan = 'Ditolak oleh Pimpinan pada saat Disposisi', tgl_pembatalan = NOW()";
+        }
+        
         // Update data kunjungan sesuai parameter penugasan ruangan dan PJ lapangan
         $query_update = "UPDATE kunjungan SET 
                             id_ruangan = '$id_ruangan', 
                             id_pj = '$id_pj', 
-                            status_kegiatan = '$status_kegiatan' 
+                            status_kegiatan = '$status_kegiatan'
+                            $extra_batal
                          WHERE id_kunjungan = '$id_kunjungan'";
                          
         if (mysqli_query($koneksi, $query_update)) {

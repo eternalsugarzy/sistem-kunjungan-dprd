@@ -107,7 +107,54 @@ include 'template/sidebar.php';
                  </div>
                  <i class="ti ti-chart-bar f-24"></i>
              </a>
+
+             <a href="cetak_lap_batal.php" target="_blank" class="btn btn-outline-dark d-flex justify-content-between align-items-center p-3 text-start">
+                 <div>
+                     <h6 class="mb-1 fw-bold">Cetak Laporan Kunjungan Batal</h6>
+                     <small class="text-muted">Rekap seluruh pengajuan kunjungan yang dibatalkan/ditolak</small>
+                 </div>
+                 <i class="ti ti-calendar-x f-24"></i>
+             </a>
          </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-md-12 mb-4">
+    <div class="card shadow border-dark">
+      <div class="card-header bg-dark text-white">
+        <h5 class="mb-0 text-white"><i class="ti ti-chart-line me-2"></i>Laporan Rekapitulasi Kunjungan Per Periode</h5>
+      </div>
+      <div class="card-body">
+        <p class="text-muted small mb-4">Lihat jumlah total kunjungan per hari/minggu/bulan, tren kenaikan-penurunan tiap periode, dan perbandingan total kunjungan dengan periode sebelumnya.</p>
+
+        <form action="cetak_rekap_periode.php" method="GET" target="_blank">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Jenis Periode</label>
+                    <select name="tipe" class="form-select border-dark" required>
+                        <option value="harian">Harian</option>
+                        <option value="mingguan">Mingguan</option>
+                        <option value="bulanan" selected>Bulanan</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Tanggal Mulai</label>
+                    <input type="date" name="tgl_mulai" class="form-control border-dark" value="<?= date('Y-m-01'); ?>" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Tanggal Selesai</label>
+                    <input type="date" name="tgl_selesai" class="form-control border-dark" value="<?= date('Y-m-d'); ?>" required>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-dark btn-lg w-100">
+                        <i class="ti ti-printer me-2"></i> Cetak Rekap Periode
+                    </button>
+                </div>
+            </div>
+        </form>
       </div>
     </div>
   </div>

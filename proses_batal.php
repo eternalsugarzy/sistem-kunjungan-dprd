@@ -38,10 +38,11 @@ if (isset($_POST['proses_batal'])) {
     if (in_array('alasan_pembatalan', $list_kolom)) {
         $query_update = "UPDATE kunjungan SET 
                             status_kegiatan = 'batal', 
-                            alasan_pembatalan = '$alasan_pembatalan' 
+                            alasan_pembatalan = '$alasan_pembatalan', 
+                            tgl_pembatalan = NOW() 
                          WHERE id_kunjungan = '$id_kunjungan'";
     } else {
-        $query_update = "UPDATE kunjungan SET status_kegiatan = 'batal' WHERE id_kunjungan = '$id_kunjungan'";
+        $query_update = "UPDATE kunjungan SET status_kegiatan = 'batal', tgl_pembatalan = NOW() WHERE id_kunjungan = '$id_kunjungan'";
     }
 
     if (mysqli_query($koneksi, $query_update)) {

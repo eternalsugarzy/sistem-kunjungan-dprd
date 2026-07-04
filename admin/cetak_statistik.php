@@ -28,11 +28,11 @@ $avg_fasilitas = number_format((float)$stat_r['avg_fasilitas'], 1, '.', '');
 $avg_waktu = number_format((float)$stat_r['avg_waktu'], 1, '.', '');
 $avg_total = number_format((float)$stat_r['avg_total'], 1, '.', '');
 
-// 3. Ambil Daftar Komentar & Saran (Maksimal 15 terbaru)
+// 3. Ambil Daftar Seluruh Feedback (Maksimal 15 terbaru) - TIDAK difilter komentar_saran
+// agar feedback yang belum diisi komentar/sarannya tetap tampil di laporan
 $q_komentar = mysqli_query($koneksi, "SELECT f.*, k.nama_instansi_tamu 
     FROM feedback_kunjungan f 
     LEFT JOIN kunjungan k ON f.id_kunjungan = k.id_kunjungan 
-    WHERE f.komentar_saran IS NOT NULL AND f.komentar_saran != ''
     ORDER BY f.created_at DESC LIMIT 15");
 
 $nama_bulan = [
@@ -40,6 +40,29 @@ $nama_bulan = [
     '05' => 'Mei', '06' => 'Juni', '07' => 'Juli', '08' => 'Agustus',
     '09' => 'September', '10' => 'Oktober', '11' => 'November', '12' => 'Desember'
 ];
+
+// ===================================================================
+// QUERY DINAMIS PENANDATANGAN (mengikuti pola surat resmi lainnya)
+// Semua atribut pejabat penandatangan (nama, NIP, jabatan, pangkat/
+// golongan, file/goresan TTD) WAJIB diambil dari tabel
+// `penanggung_jawab`, TIDAK boleh ditulis statis di file laporan.
+// ===================================================================
+$query_sekwan = mysqli_query($koneksi, "SELECT * FROM penanggung_jawab WHERE jabatan LIKE '%Sekretaris%' OR jabatan LIKE '%Sekwan%' LIMIT 1");
+$data_sekwan = mysqli_fetch_assoc($query_sekwan);
+
+if (!empty($data_sekwan['nama_pj'])) {
+    $nama_sekwan    = $data_sekwan['nama_pj'];
+    $nip_sekwan     = $data_sekwan['nip'];
+    $jabatan_sekwan = $data_sekwan['jabatan'];
+    $pangkat_sekwan = !empty($data_sekwan['pangkat_golongan']) ? $data_sekwan['pangkat_golongan'] : '-';
+    $ttd_raw        = $data_sekwan['file_ttd'];
+} else {
+    $nama_sekwan    = '<span style="color:red;">[Input Sekretaris di Master PJ]</span>';
+    $nip_sekwan     = '-';
+    $jabatan_sekwan = 'SEKRETARIS DEWAN';
+    $pangkat_sekwan = '-';
+    $ttd_raw        = '';
+}
 ?>
 
 <!DOCTYPE html>
@@ -87,7 +110,9 @@ $nama_bulan = [
         /* FOOTER TTD */
         .ttd-area { float: right; margin-top: 30px; text-align: center; width: 280px; }
         .ttd-area p { margin: 3px 0; }
-        .nama-ttd { font-weight: bold; text-decoration: underline; margin-top: 70px !important; }
+        .graphic-ttd-layer { height: 80px; display: flex; align-items: center; justify-content: center; margin: 5px 0; }
+        .graphic-ttd-layer img { max-height: 75px; max-width: 160px; object-fit: contain; }
+        .nama-ttd { font-weight: bold; text-decoration: underline; }
 
         @media print { .no-print { display: none !important; } body { margin: 0; } }
     </style>
@@ -173,7 +198,7 @@ $nama_bulan = [
 
     </div>
 
-    <div style="font-weight: bold; margin-bottom: 10px; font-size: 12pt; text-transform: uppercase;">3. Rincian Komentar & Saran Tamu</div>
+    <div style="font-weight: bold; margin-bottom: 10px; font-size: 12pt; text-transform: uppercase;">3. Rincian Feedback & Komentar Tamu (15 Terbaru)</div>
     <table class="table-komentar">
         <thead>
             <tr>
@@ -193,13 +218,14 @@ $nama_bulan = [
                     $nama = ($f['is_anonymous'] == 1) ? "<i>Hamba Allah (Anonim)</i>" : "<strong>" . htmlspecialchars($f['nama_pemberi']) . "</strong>";
                     $instansi = htmlspecialchars($f['nama_instansi_tamu'] ?? '-');
                     $tgl = date('d/m/Y', strtotime($f['created_at']));
+                    $saran = !empty($f['komentar_saran']) ? nl2br(htmlspecialchars($f['komentar_saran'])) : '<span style="color:#888; font-style: italic;">Tidak ada komentar/saran</span>';
             ?>
             <tr>
                 <td style="text-align: center;"><?= $no++; ?></td>
                 <td style="text-align: center;"><?= $tgl; ?></td>
                 <td><?= $nama; ?><br><small><?= $instansi; ?></small></td>
                 <td style="text-align: center;" class="star-text">&#9733; <?= number_format($f['rating_keseluruhan'], 1); ?></td>
-                <td><?= nl2br(htmlspecialchars($f['komentar_saran'])); ?></td>
+                <td><?= $saran; ?></td>
             </tr>
             <?php 
                 }
@@ -212,10 +238,23 @@ $nama_bulan = [
 
     <div class="ttd-area">
         <p>Banjarmasin, <?= date('d') . ' ' . $nama_bulan[date('m')] . ' ' . date('Y'); ?></p>
-        <p>Sekretaris DPRD Kota Banjarmasin,</p>
-        <p class="nama-ttd">Iwan Fitriady, SH., MH.</p>
-        <p>Pembina Utama Muda</p>
-        <p>NIP. 19700101 199503 1 002</p>
+        <p><?= strtoupper($jabatan_sekwan); ?></p>
+
+        <div class="graphic-ttd-layer">
+            <?php if (!empty($ttd_raw)): ?>
+                <?php if (strpos($ttd_raw, 'data:image') !== false || substr($ttd_raw, 0, 4) === 'data'): ?>
+                    <img src="<?= $ttd_raw; ?>" alt="TTD Goresan">
+                <?php else: ?>
+                    <img src="../uploads/ttd/<?= $ttd_raw; ?>" onerror="this.style.display='none'" alt="TTD File">
+                <?php endif; ?>
+            <?php else: ?>
+                <div style="height: 60px;"></div>
+            <?php endif; ?>
+        </div>
+
+        <p class="nama-ttd"><?= $nama_sekwan; ?></p>
+        <p><?= htmlspecialchars($pangkat_sekwan); ?></p>
+        <p>NIP. <?= $nip_sekwan; ?></p>
     </div>
     
     <div style="clear: both;"></div>
