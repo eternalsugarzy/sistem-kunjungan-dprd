@@ -12,6 +12,38 @@ $q_kunjungan = mysqli_query($koneksi, "SELECT
     FROM kunjungan");
 $stat_k = mysqli_fetch_assoc($q_kunjungan);
 
+// 1b. Ambil Rata-rata Waktu Proses Persetujuan (created_at -> waktu_verifikasi)
+// Menjawab Req Panelis: Laporan Statistik Penggunaan Sistem
+$avg_proses_menit = null;
+$jml_diproses = 0;
+$q_proses = mysqli_query($koneksi, "SELECT 
+    AVG(TIMESTAMPDIFF(MINUTE, created_at, waktu_verifikasi)) as avg_menit,
+    COUNT(*) as jml
+    FROM kunjungan WHERE waktu_verifikasi IS NOT NULL");
+if ($q_proses) {
+    $r_proses = mysqli_fetch_assoc($q_proses);
+    if ($r_proses && $r_proses['avg_menit'] !== null) {
+        $avg_proses_menit = (float) $r_proses['avg_menit'];
+        $jml_diproses = (int) $r_proses['jml'];
+    }
+}
+
+// Format menit jadi teks yang mudah dibaca (Hari/Jam/Menit)
+function format_durasi_proses($menit) {
+    if ($menit === null) return 'Belum ada data';
+    $menit = (int) round($menit);
+    $hari = intdiv($menit, 1440);
+    $sisa = $menit % 1440;
+    $jam = intdiv($sisa, 60);
+    $mnt = $sisa % 60;
+    $bagian = [];
+    if ($hari > 0) $bagian[] = "$hari hari";
+    if ($jam > 0) $bagian[] = "$jam jam";
+    if ($mnt > 0 || empty($bagian)) $bagian[] = "$mnt menit";
+    return implode(' ', $bagian);
+}
+$teks_durasi_proses = format_durasi_proses($avg_proses_menit);
+
 // 2. Ambil Statistik Kepuasan / Rating (Menjawab Revisi Panelis 2)
 $q_rating = mysqli_query($koneksi, "SELECT 
     COUNT(id_feedback) as total_responden,
@@ -90,11 +122,11 @@ if (!empty($data_sekwan['nama_pj'])) {
         .judul p { margin: 5px 0 0 0; font-size: 10pt; }
 
         /* KOTAK STATISTIK */
-        .box-container { display: flex; justify-content: space-between; margin-bottom: 20px; gap: 15px; }
-        .box-stat { flex: 1; border: 1px solid #000; padding: 15px; background: #f8f9fa; }
-        .box-title { font-weight: bold; border-bottom: 1px solid #ccc; padding-bottom: 5px; margin-bottom: 10px; font-size: 12pt; text-transform: uppercase;}
+        .box-container { display: flex; justify-content: space-between; margin-bottom: 20px; gap: 12px; flex-wrap: wrap; }
+        .box-stat { flex: 1; min-width: 200px; border: 1px solid #000; padding: 12px; background: #f8f9fa; }
+        .box-title { font-weight: bold; border-bottom: 1px solid #ccc; padding-bottom: 5px; margin-bottom: 10px; font-size: 10.5pt; text-transform: uppercase;}
         
-        .stat-row { display: flex; justify-content: space-between; margin-bottom: 5px; }
+        .stat-row { display: flex; justify-content: space-between; gap: 6px; margin-bottom: 5px; font-size: 9.5pt; }
         .stat-val { font-weight: bold; }
 
         /* INDIKATOR BINTANG */
@@ -174,7 +206,21 @@ if (!empty($data_sekwan['nama_pj'])) {
         </div>
 
         <div class="box-stat">
-            <div class="box-title">2. Indeks Kepuasan Tamu</div>
+            <div class="box-title">2. Rata-rata Waktu Proses Persetujuan</div>
+            <p style="margin: 0 0 10px 0; font-size: 9pt;">Dihitung sejak permohonan masuk hingga diverifikasi/disetujui admin (<?= $jml_diproses; ?> permohonan telah diproses)</p>
+            <div class="stat-row" style="font-size: 13pt; align-items:center;">
+                <span><strong>RATA-RATA WAKTU PROSES</strong></span>
+                <span class="stat-val"><?= htmlspecialchars($teks_durasi_proses); ?></span>
+            </div>
+            <hr style="border-top: 1px dashed #ccc; margin: 10px 0;">
+            <div class="stat-row">
+                <span>Total Permohonan Belum Diproses</span>
+                <span class="stat-val"><?= $stat_k['proses'] ?? 0; ?> Kunjungan</span>
+            </div>
+        </div>
+
+        <div class="box-stat">
+            <div class="box-title">3. Indeks Kepuasan Tamu</div>
             <p style="margin: 0 0 10px 0; font-size: 9pt;">Berdasarkan <?= $stat_r['total_responden'] ?? 0; ?> responden (Skala 1 - 5)</p>
             
             <div style="margin-bottom: 8px;">
@@ -198,7 +244,7 @@ if (!empty($data_sekwan['nama_pj'])) {
 
     </div>
 
-    <div style="font-weight: bold; margin-bottom: 10px; font-size: 12pt; text-transform: uppercase;">3. Rincian Feedback & Komentar Tamu (15 Terbaru)</div>
+    <div style="font-weight: bold; margin-bottom: 10px; font-size: 12pt; text-transform: uppercase;">4. Rincian Feedback & Komentar Tamu (15 Terbaru)</div>
     <table class="table-komentar">
         <thead>
             <tr>

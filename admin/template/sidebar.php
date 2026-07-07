@@ -98,6 +98,8 @@ if (isset($koneksi)) {
   <li class="pc-item"><a class="pc-link" href="master_pj.php">Penanggung Jawab</a></li>
   <!-- TAMBAHAN MENU KATEGORI BARU -->
   <li class="pc-item"><a class="pc-link" href="master_kategori.php">Kategori Kunjungan</a></li>
+  <!-- TAMBAHAN MENU JADWAL KETERSEDIAAN PEJABAT -->
+<li class="pc-item"><a class="pc-link" href="master_jadwal.php">Jadwal Ketersediaan Pejabat</a></li>
   <?php if (isset($_SESSION['level']) && $_SESSION['level'] == 'admin'): ?>
     <li class="pc-item"><a class="pc-link" href="manajemen_user.php">Manajemen Admin</a></li>
   <?php endif; ?>

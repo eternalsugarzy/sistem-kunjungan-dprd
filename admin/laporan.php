@@ -102,8 +102,8 @@ include 'template/sidebar.php';
 
              <a href="cetak_statistik.php" target="_blank" class="btn btn-outline-dark d-flex justify-content-between align-items-center p-3 text-start">
                  <div>
-                     <h6 class="mb-1 fw-bold">Cetak Statistik Dashboard & Kepuasan</h6>
-                     <small class="text-muted">Laporan statistik grafik dan hasil feedback tamu</small>
+                     <h6 class="mb-1 fw-bold">Cetak Statistik Penggunaan Sistem & Kepuasan</h6>
+<small class="text-muted">Online vs Walk-in, rata-rata waktu proses persetujuan, dan hasil feedback tamu</small>
                  </div>
                  <i class="ti ti-chart-bar f-24"></i>
              </a>
