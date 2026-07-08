@@ -16,6 +16,56 @@ echo '<style>.loader-bg, .preloader, #pc-loader, .pc-loader { display: none !imp
 $pesan_sukses = "";
 $pesan_gagal = "";
 
+// Helper: konversi tanggal ke nama hari berbahasa Indonesia
+// (dipakai untuk mencocokkan jadwal ketersediaan pejabat)
+if (!function_exists('nama_hari_indo')) {
+    function nama_hari_indo($tanggal) {
+        $map = [
+            'Sunday' => 'Minggu', 'Monday' => 'Senin', 'Tuesday' => 'Selasa',
+            'Wednesday' => 'Rabu', 'Thursday' => 'Kamis', 'Friday' => "Jum'at", 'Saturday' => 'Sabtu'
+        ];
+        return $map[date('l', strtotime($tanggal))] ?? '';
+    }
+}
+
+// Helper: cek apakah PJ TIDAK tersedia (di luar jadwal ketersediaan ATAU bentrok
+// dengan kunjungan lain) pada hari & jam kunjungan tertentu.
+// Return true jika bermasalah (tidak tersedia/bentrok), false jika aman.
+if (!function_exists('cek_pj_tidak_tersedia')) {
+    function cek_pj_tidak_tersedia($koneksi, $id_pj, $id_kunjungan) {
+        $id_pj = mysqli_real_escape_string($koneksi, $id_pj);
+        $id_kunjungan = mysqli_real_escape_string($koneksi, $id_kunjungan);
+
+        // Ambil tanggal & jam kunjungan yang sedang diproses
+        $q = mysqli_query($koneksi, "SELECT tgl_kunjungan, waktu_kunjungan FROM kunjungan WHERE id_kunjungan='$id_kunjungan'");
+        if (!$q || mysqli_num_rows($q) == 0) return false;
+        $k = mysqli_fetch_assoc($q);
+        $tgl = $k['tgl_kunjungan'];
+        $jam = $k['waktu_kunjungan'];
+        $hari = mysqli_real_escape_string($koneksi, nama_hari_indo($tgl));
+
+        // 1. Cek bentrok: PJ sudah dijadwalkan menerima tamu lain di tanggal & jam sama
+        $q_bentrok = mysqli_query($koneksi, "SELECT id_kunjungan FROM kunjungan 
+            WHERE id_pj='$id_pj' AND tgl_kunjungan='$tgl' AND waktu_kunjungan='$jam' 
+            AND status_kegiatan='dijadwalkan' AND id_kunjungan != '$id_kunjungan'");
+        if ($q_bentrok && mysqli_num_rows($q_bentrok) > 0) return true;
+
+        // 2. Cek jadwal ketersediaan: apakah PJ punya jadwal sama sekali?
+        $q_punya = mysqli_query($koneksi, "SELECT id_jadwal FROM jadwal_pejabat WHERE id_pj='$id_pj'");
+        $punya_jadwal = ($q_punya && mysqli_num_rows($q_punya) > 0);
+        if (!$punya_jadwal) return false; // Tidak diatur jadwalnya => dianggap bebas
+
+        // Apakah tersedia pada hari & jam kunjungan ini?
+        $q_tersedia = mysqli_query($koneksi, "SELECT id_jadwal FROM jadwal_pejabat 
+            WHERE id_pj='$id_pj' AND hari='$hari' AND status_tersedia=1 
+            AND '$jam' >= jam_mulai AND '$jam' < jam_selesai");
+        $tersedia = ($q_tersedia && mysqli_num_rows($q_tersedia) > 0);
+
+        // Punya jadwal tapi tidak tersedia di slot ini => bermasalah
+        return !$tersedia;
+    }
+}
+
 // ---------------------------------------------------------
 // LOGIC PROSES SIMPAN DISPOSISI PIMPINAN (UPDATE STATUS & TTE)
 // ---------------------------------------------------------
@@ -26,9 +76,16 @@ if (isset($_POST['proses_disposisi'])) {
     $keputusan    = mysqli_real_escape_string($koneksi, $_POST['keputusan']);
     $passphrase   = mysqli_real_escape_string($koneksi, $_POST['passphrase']); // Validasi TTE dari Proposal
 
+    // Konfirmasi override jika PJ di luar jam ketersediaan / bentrok (dikirim dari JS)
+    $konfirmasi_override = isset($_POST['konfirmasi_override']) && $_POST['konfirmasi_override'] == '1';
+
     // Batasan Proposal: Validasi Passphrase sandi frasa rahasia pimpinan untuk mengaktifkan TTE
     if ($passphrase !== "pimpinan123") {
         $pesan_gagal = "Gagal! Passphrase (Sandi Frasa) Keamanan TTE Pimpinan Salah.";
+    } elseif ($keputusan == 'setuju' && !$konfirmasi_override && cek_pj_tidak_tersedia($koneksi, $id_pj, $id_kunjungan)) {
+        // Validasi sisi server: PJ yang dipilih tidak tersedia pada hari/jam kunjungan
+        // dan pimpinan belum mencentang konfirmasi override.
+        $pesan_gagal = "Gagal! Penanggung Jawab yang dipilih berada DI LUAR jam ketersediaan atau sudah dijadwalkan menerima tamu lain pada waktu tersebut. Silakan pilih PJ lain, atau centang kotak konfirmasi untuk tetap melanjutkan.";
     } else {
         $status_kegiatan = ($keputusan == 'setuju') ? 'dijadwalkan' : 'batal';
         
@@ -157,16 +214,57 @@ if (isset($_POST['proses_disposisi'])) {
                                                     </select>
                                                 </div>
 
+                                                <?php
+                                                    // Hitung hari & jam kunjungan ini untuk pencocokan jadwal ketersediaan
+                                                    $hari_kunjungan = mysqli_real_escape_string($koneksi, nama_hari_indo($d['tgl_kunjungan']));
+                                                    $tgl_k = mysqli_real_escape_string($koneksi, $d['tgl_kunjungan']);
+                                                    $jam_k = mysqli_real_escape_string($koneksi, $d['waktu_kunjungan']);
+                                                ?>
                                                 <div class="mb-3">
                                                     <label class="form-label fw-bold text-dark">Penanggung Jawab Lapangan (PJ) *</label>
-                                                    <select name="id_pj" class="form-select form-select-sm" required>
+                                                    <small class="d-block text-muted mb-1" style="font-size:10px;">Jadwal kunjungan: <b><?= date('d-m-Y', strtotime($d['tgl_kunjungan'])); ?></b> pukul <b><?= substr($d['waktu_kunjungan'],0,5); ?></b> (<?= $hari_kunjungan; ?>)</small>
+                                                    <select name="id_pj" class="form-select form-select-sm select-pj" required>
+                                                        <option value="">-- Pilih Penanggung Jawab --</option>
                                                         <?php
                                                         $pj_query = mysqli_query($koneksi, "SELECT * FROM penanggung_jawab");
                                                         while($p = mysqli_fetch_array($pj_query)){
-                                                            echo "<option value='{$p['id_pj']}'>{$p['nama_pj']} - {$p['jabatan']}</option>";
+                                                            // Apakah PJ ini punya jadwal ketersediaan sama sekali?
+                                                            $q_punya = mysqli_query($koneksi, "SELECT id_jadwal FROM jadwal_pejabat WHERE id_pj='{$p['id_pj']}'");
+                                                            $punya_jadwal = ($q_punya && mysqli_num_rows($q_punya) > 0);
+
+                                                            // Apakah tersedia pada hari & jam kunjungan ini?
+                                                            $q_tersedia = mysqli_query($koneksi, "SELECT id_jadwal FROM jadwal_pejabat 
+                                                                WHERE id_pj='{$p['id_pj']}' AND hari='$hari_kunjungan' AND status_tersedia=1 
+                                                                AND '$jam_k' >= jam_mulai AND '$jam_k' < jam_selesai");
+                                                            $tersedia_jadwal = ($q_tersedia && mysqli_num_rows($q_tersedia) > 0);
+
+                                                            // Apakah PJ ini sudah punya kunjungan lain (dijadwalkan) di tanggal & jam sama?
+                                                            $q_bentrok = mysqli_query($koneksi, "SELECT id_kunjungan FROM kunjungan 
+                                                                WHERE id_pj='{$p['id_pj']}' AND tgl_kunjungan='$tgl_k' AND waktu_kunjungan='$jam_k' 
+                                                                AND status_kegiatan='dijadwalkan' AND id_kunjungan != '{$d['id_kunjungan']}'");
+                                                            $bentrok_pj = ($q_bentrok && mysqli_num_rows($q_bentrok) > 0);
+
+                                                            $label = htmlspecialchars($p['nama_pj']) . " - " . htmlspecialchars($p['jabatan']);
+                                                            $diluar = ($punya_jadwal && !$tersedia_jadwal);
+                                                            if ($bentrok_pj) {
+                                                                $label .= " \u{26D4} Sudah ada jadwal lain jam ini";
+                                                            } elseif ($diluar) {
+                                                                $label .= " \u{26A0} Diluar jam ketersediaan";
+                                                            } elseif ($punya_jadwal && $tersedia_jadwal) {
+                                                                $label .= " \u{2705} Tersedia";
+                                                            }
+                                                            echo "<option value='{$p['id_pj']}' data-bentrok='" . ($bentrok_pj ? 1 : 0) . "' data-diluar-jadwal='" . ($diluar ? 1 : 0) . "'>{$label}</option>";
                                                         }
                                                         ?>
                                                     </select>
+                                                    <div class="warn-pj-disposisi form-text text-danger d-none mt-1" style="font-size:11px;">
+                                                        <i class="ti ti-alert-triangle"></i> PJ ini <b>tidak tersedia</b> (di luar jam ketersediaan atau sudah dijadwalkan menerima tamu lain) pada hari/jam kunjungan ini.
+                                                    </div>
+                                                    <div class="konfirmasi-wrap d-none mt-2 p-2" style="background:#fff3cd;border:1px solid #ffe69c;border-radius:4px;">
+                                                        <label style="font-size:11px;font-weight:600;" class="text-dark mb-0">
+                                                            <input type="checkbox" name="konfirmasi_override" value="1" class="chk-override"> Saya tetap menunjuk PJ ini meskipun di luar jadwal ketersediaan (ada kesepakatan khusus).
+                                                        </label>
+                                                    </div>
                                                 </div>
 
                                                 <div class="mb-2">
@@ -199,6 +297,47 @@ if (isset($_POST['proses_disposisi'])) {
         
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // Untuk setiap dropdown PJ di tiap modal disposisi
+    document.querySelectorAll('select[name="id_pj"]').forEach(function (sel) {
+        var wrap   = sel.closest('.mb-3');
+        var warn   = wrap ? wrap.querySelector('.warn-pj-disposisi') : null;
+        var konfWrap = wrap ? wrap.querySelector('.konfirmasi-wrap') : null;
+        var chk    = wrap ? wrap.querySelector('.chk-override') : null;
+
+        function evaluate() {
+            var opt = sel.options[sel.selectedIndex];
+            var bermasalah = !!(opt && (opt.dataset.bentrok === '1' || opt.dataset.diluarJadwal === '1'));
+            if (warn) warn.classList.toggle('d-none', !bermasalah);
+            if (konfWrap) konfWrap.classList.toggle('d-none', !bermasalah);
+            if (!bermasalah && chk) chk.checked = false; // reset centang bila ganti ke PJ tersedia
+        }
+        sel.addEventListener('change', evaluate);
+        evaluate();
+    });
+
+    // Cegah submit bila PJ bermasalah tapi belum dicentang konfirmasi
+    document.querySelectorAll('form').forEach(function (form) {
+        var selPj = form.querySelector('select[name="id_pj"]');
+        if (!selPj) return;
+        form.addEventListener('submit', function (e) {
+            var keputusan = form.querySelector('select[name="keputusan"]');
+            // Hanya berlaku bila keputusan = setuju
+            if (keputusan && keputusan.value !== 'setuju') return;
+
+            var opt = selPj.options[selPj.selectedIndex];
+            var bermasalah = !!(opt && (opt.dataset.bentrok === '1' || opt.dataset.diluarJadwal === '1'));
+            var chk = form.querySelector('.chk-override');
+            if (bermasalah && (!chk || !chk.checked)) {
+                e.preventDefault();
+                alert('Penanggung Jawab yang dipilih berada DI LUAR jam ketersediaan (atau sudah dijadwalkan menerima tamu lain) pada hari/jam kunjungan ini.\n\nSilakan pilih PJ lain, atau centang kotak konfirmasi jika tetap ingin menunjuk PJ ini.');
+            }
+        });
+    });
+});
+</script>
 
 <style>
 .border-dark-card { border: 2px solid #2e2e2e !important; }
