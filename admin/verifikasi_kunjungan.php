@@ -4,6 +4,13 @@ $page = 'verifikasi';
 
 // 2. Panggil Template Header & Sidebar
 include 'template/header.php';
+
+// Hanya admin & petugas yang boleh akses halaman ini
+if (!in_array($_SESSION['level'] ?? '', ['admin', 'petugas'])) {
+    header("location: ../beranda.php");
+    exit;
+}
+
 include 'template/sidebar.php';
 
 // Helper: konversi tanggal ke nama hari berbahasa Indonesia
@@ -77,7 +84,7 @@ function nama_hari_indo($tanggal) {
                 <td><?= $no++; ?></td>
                 <td>
                     <?= date('d/m/Y', strtotime($d['created_at'])); ?> <br>
-                    <span class="badge bg-light-primary text-primary"><?= $d['kode_booking']; ?></span>
+                    <span class="badge bg-light-primary text-primary"><?= htmlspecialchars($d['kode_booking']); ?></span>
                 </td>
                 <td>
                     <h6 class="mb-0 fw-bold"><?= htmlspecialchars($d['nama_instansi_tamu']); ?></h6>

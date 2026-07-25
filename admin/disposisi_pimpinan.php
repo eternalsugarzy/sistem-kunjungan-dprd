@@ -8,6 +8,13 @@ ini_set('display_errors', 1);
 $page = 'disposisi'; // Sesuai nama menu di sidebar
 
 include 'template/header.php';
+
+// Hanya admin & petugas yang boleh akses halaman ini
+if (!in_array($_SESSION['level'] ?? '', ['admin', 'petugas'])) {
+    header("location: ../beranda.php");
+    exit;
+}
+
 include 'template/sidebar.php';
 
 // PAKSA SEMBUNYIKAN LOADER CSS
@@ -96,15 +103,19 @@ if (isset($_POST['proses_disposisi'])) {
         }
         
         // Update data kunjungan sesuai parameter penugasan ruangan dan PJ lapangan
-        $query_update = "UPDATE kunjungan SET 
-                            id_ruangan = '$id_ruangan', 
-                            id_pj = '$id_pj', 
+        $query_update = "UPDATE kunjungan SET
+                            id_ruangan = '$id_ruangan',
+                            id_pj = '$id_pj',
                             status_kegiatan = '$status_kegiatan'
                             $extra_batal
-                         WHERE id_kunjungan = '$id_kunjungan'";
-                         
+                         WHERE id_kunjungan = '$id_kunjungan' AND status_kegiatan = 'pending'";
+
         if (mysqli_query($koneksi, $query_update)) {
-            $pesan_sukses = "Sukses! Lembar Otorisasi Disposisi Ber-TTE Berhasil Diterbitkan.";
+            if (mysqli_affected_rows($koneksi) > 0) {
+                $pesan_sukses = "Sukses! Lembar Otorisasi Disposisi Ber-TTE Berhasil Diterbitkan.";
+            } else {
+                $pesan_gagal = "Gagal! Kunjungan ini sudah diproses sebelumnya (bukan pending lagi).";
+            }
         } else {
             $pesan_gagal = "Gagal memproses disposisi: " . mysqli_error($koneksi);
         }
@@ -167,7 +178,7 @@ if (isset($_POST['proses_disposisi'])) {
                             ?>
                             <tr>
                                 <td><?= $no++; ?></td>
-                                <td class="font-monospace fw-bold text-primary"><?= $d['kode_booking']; ?><br><small class="text-muted"><?= date('d-m-Y', strtotime($d['tgl_kunjungan'])); ?></small></td>
+                                <td class="font-monospace fw-bold text-primary"><?= htmlspecialchars($d['kode_booking']); ?><br><small class="text-muted"><?= date('d-m-Y', strtotime($d['tgl_kunjungan'])); ?></small></td>
                                 <td><h6 class="mb-0 fw-bold"><?= htmlspecialchars($d['nama_instansi_tamu']); ?></h6><small class="text-muted"><?= htmlspecialchars($d['email_pemohon']); ?></small></td>
                                 <td><small class="text-dark"><?= htmlspecialchars($d['materi_kunjungan']); ?></small></td>
                                 <td><span class="badge bg-warning">Pending</span></td>
@@ -182,7 +193,7 @@ if (isset($_POST['proses_disposisi'])) {
                                 <div class="modal-dialog modal-dialog-centered">
                                     <div class="modal-content border-dark-card">
                                         <div class="modal-header bg-light">
-                                            <h5 class="modal-title fw-bold font-monospace">[ Lembar Disposisi: <?= $d['kode_booking']; ?> ]</h5>
+                                            <h5 class="modal-title fw-bold font-monospace">[ Lembar Disposisi: <?= htmlspecialchars($d['kode_booking']); ?> ]</h5>
                                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                         </div>
                                         <form method="POST" action="">
