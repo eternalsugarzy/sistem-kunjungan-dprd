@@ -26,13 +26,18 @@ $tanggal = date('d M Y', strtotime($data['tgl_kunjungan']));
 $ruangan = !empty($data['nama_ruangan']) ? $data['nama_ruangan'] : 'Belum ditentukan';
 $batas_waktu = !empty($data['batas_waktu_kunjungan']) ? date('H:i', strtotime($data['batas_waktu_kunjungan'])) . " WITA" : '15:00 WITA';
 
-// PERBAIKAN LOGIKA QR CODE: Prioritaskan file lokal, jika kosong gunakan API (tanpa ../ karena URL eksternal)
+// PERBAIKAN LOGIKA QR CODE: Prioritaskan file lokal, jika kosong gunakan API (Compact Token Signature)
+$ts = isset($data['created_at']) && !empty($data['created_at']) ? strtotime($data['created_at']) : 1787900000;
+if ($ts <= 0) $ts = 1787900000;
+$sig = substr(hash_hmac('sha256', $kode_booking . '|' . $ts, $qr_secret_key), 0, 10);
+$qr_payload = $kode_booking . '|' . $ts . '|' . $sig;
+
 $qr_path = "";
 if (!empty($data['qr_code_path']) && file_exists("../" . $data['qr_code_path'])) {
     $qr_path = "../" . $data['qr_code_path'];
 } else {
     // API pihak ketiga untuk menghasilkan QR Code on-the-fly
-    $qr_path = "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=" . urlencode($kode_booking);
+    $qr_path = "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=" . urlencode($qr_payload);
 }
 ?>
 

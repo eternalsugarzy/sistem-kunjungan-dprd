@@ -150,11 +150,16 @@ if (isset($_POST['btn_cek']) || isset($_GET['kode'])) {
 
                                     <div class="qr-ticket-box mb-3 bg-light">
                                         <?php
+                                        $ts = isset($data['created_at']) && !empty($data['created_at']) ? strtotime($data['created_at']) : 1787900000;
+                                        if ($ts <= 0) $ts = 1787900000;
+                                        $sig = substr(hash_hmac('sha256', $data['kode_booking'] . '|' . $ts, $qr_secret_key), 0, 10);
+                                        $qr_payload = $data['kode_booking'] . '|' . $ts . '|' . $sig;
+
                                         $qr_path = "";
                                         if (!empty($data['qr_code_path']) && file_exists($data['qr_code_path'])) {
                                             $qr_path = $data['qr_code_path'];
                                         } else {
-                                            $qr_path = "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=" . urlencode($data['kode_booking']);
+                                            $qr_path = "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=" . urlencode($qr_payload);
                                         }
                                         ?>
                                         <img src="<?= $qr_path ?>" alt="QR Code E-Ticket"
@@ -175,7 +180,12 @@ if (isset($_POST['btn_cek']) || isset($_GET['kode'])) {
 
                                     <div class="qr-ticket-box mb-3 bg-light">
                                         <?php
-                                        $qr_path = (!empty($data['qr_code_path']) && file_exists($data['qr_code_path'])) ? $data['qr_code_path'] : "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=" . urlencode($data['kode_booking']);
+                                        $ts = isset($data['created_at']) && !empty($data['created_at']) ? strtotime($data['created_at']) : 1787900000;
+                                        if ($ts <= 0) $ts = 1787900000;
+                                        $sig = substr(hash_hmac('sha256', $data['kode_booking'] . '|' . $ts, $qr_secret_key), 0, 10);
+                                        $qr_payload = $data['kode_booking'] . '|' . $ts . '|' . $sig;
+
+                                        $qr_path = (!empty($data['qr_code_path']) && file_exists($data['qr_code_path'])) ? $data['qr_code_path'] : "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=" . urlencode($qr_payload);
                                         ?>
                                         <img src="<?= $qr_path ?>" alt="QR Code Check-Out"
                                             style="width: 150px; height: 150px; object-fit: contain;">

@@ -15,13 +15,18 @@ if (!$d) {
     exit;
 }
 
-// Logika Cek QR Code (Lokal vs API Fallback)
+// Logika Cek QR Code (Lokal vs API Fallback dengan Compact Token)
+$ts = isset($d['created_at']) && !empty($d['created_at']) ? strtotime($d['created_at']) : 1787900000;
+if ($ts <= 0) $ts = 1787900000;
+$sig = substr(hash_hmac('sha256', $d['kode_booking'] . '|' . $ts, $qr_secret_key), 0, 10);
+$qr_payload = $d['kode_booking'] . '|' . $ts . '|' . $sig;
+
 $qr_path = "";
 if (!empty($d['qr_code_path']) && file_exists($d['qr_code_path'])) {
     $qr_path = $d['qr_code_path'];
 } else {
     // Jika admin belum membuat file fisik QR, generate langsung dari API untuk dicetak
-    $qr_path = "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=" . urlencode($d['kode_booking']);
+    $qr_path = "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=" . urlencode($qr_payload);
 }
 ?>
 

@@ -58,10 +58,15 @@ $ruangan      = ($d && !empty($d['nama_ruangan'])) ? $d['nama_ruangan'] : '<span
 $pj           = ($d && !empty($d['nama_pj'])) ? $d['nama_pj'] : '<span class="text-muted font-italic">Belum Ditentukan (Pending)</span>';
 
 // ==========================================
-// LOGIKA PEMBUATAN & PENYIMPANAN QR CODE
+// LOGIKA PEMBUATAN & PENYIMPANAN QR CODE (COMPACT TOKEN SIGNATURE)
 // ==========================================
+$ts = isset($d['created_at']) && !empty($d['created_at']) ? strtotime($d['created_at']) : 1787900000;
+if ($ts <= 0) $ts = 1787900000;
+$sig = substr(hash_hmac('sha256', $kode_booking . '|' . $ts, $qr_secret_key), 0, 10);
+$qr_payload = $kode_booking . '|' . $ts . '|' . $sig;
+
 $qr_code_path = ($d && isset($d['qr_code_path'])) ? $d['qr_code_path'] : '';
-$qr_api_url = "https://api.qrserver.com/v1/create-qr-code/?size=130x130&data=" . urlencode($kode_booking);
+$qr_api_url   = "https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=" . urlencode($qr_payload);
 
 if (empty($qr_code_path) && $is_mockup == false) {
     $folder_qr = "../uploads/qr/";
@@ -76,7 +81,8 @@ if (empty($qr_code_path) && $is_mockup == false) {
     if ($gambar_qr !== false) {
         file_put_contents($path_simpan_lokal, $gambar_qr);
         $path_db = "uploads/qr/" . $nama_file_qr;
-        mysqli_query($koneksi, "UPDATE kunjungan SET qr_code_path = '$path_db' WHERE id_kunjungan = '$id_kunjungan'");
+        $qr_payload_esc = mysqli_real_escape_string($koneksi, $qr_payload);
+        mysqli_query($koneksi, "UPDATE kunjungan SET qr_code_path = '$path_db', qr_code_data = '$qr_payload_esc' WHERE id_kunjungan = '$id_kunjungan'");
         
         $qr_code_path = $path_db;
         $qr_image_src = "../" . $path_db;

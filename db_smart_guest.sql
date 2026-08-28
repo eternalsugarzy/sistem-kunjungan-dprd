@@ -59,6 +59,7 @@ CREATE TABLE `buku_tamu` (
   `tanda_tangan` varchar(255) DEFAULT NULL,
   `timestamp_ttd` timestamp NULL DEFAULT NULL,
   `status_ttd` enum('valid','invalid','kosong') DEFAULT 'kosong',
+  `foto_tamu` varchar(255) DEFAULT NULL,
   `waktu_hadir` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 

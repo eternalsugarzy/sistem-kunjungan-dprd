@@ -60,11 +60,42 @@ if (isset($_POST['tambah_peserta'])) {
         move_uploaded_file($file_tmp, "../uploads/ttd/" . $nama_file_ttd);
     }
 
+    // C. PROSES FOTO TAMU (KAMERA / UPLOAD)
+    $nama_foto_tamu = "";
+
+    // C1. Foto dari Kamera (Base64 Canvas)
+    if (!empty($_POST['foto_camera'])) {
+        $img_foto = $_POST['foto_camera'];
+        if (strpos($img_foto, 'data:image/png;base64,') !== false) {
+            $img_foto = str_replace('data:image/png;base64,', '', $img_foto);
+            $img_foto = str_replace(' ', '+', $img_foto);
+            $foto_decode = base64_decode($img_foto);
+
+            if (!file_exists('../uploads/foto_tamu')) {
+                mkdir('../uploads/foto_tamu', 0777, true);
+            }
+            $nama_foto_tamu = "FOTO_CAM_" . time() . "_" . rand(100,999) . ".png";
+            file_put_contents("../uploads/foto_tamu/" . $nama_foto_tamu, $foto_decode);
+        }
+    }
+    // C2. Foto dari Upload File (Fallback)
+    elseif (!empty($_FILES['foto_tamu']['name'])) {
+        $ft_name = $_FILES['foto_tamu']['name'];
+        $ft_tmp  = $_FILES['foto_tamu']['tmp_name'];
+        $ft_ext  = pathinfo($ft_name, PATHINFO_EXTENSION);
+        
+        if (!file_exists('../uploads/foto_tamu')) {
+            mkdir('../uploads/foto_tamu', 0777, true);
+        }
+        $nama_foto_tamu = "FOTO_" . time() . "_" . rand(100,999) . "." . $ft_ext;
+        move_uploaded_file($ft_tmp, "../uploads/foto_tamu/" . $nama_foto_tamu);
+    }
+
     // Simpan ke database
     $query = "INSERT INTO buku_tamu 
-              (id_kunjungan, nama_peserta, jabatan_peserta, no_hp, asal_instansi, tanda_tangan, waktu_hadir) 
+              (id_kunjungan, nama_peserta, jabatan_peserta, no_hp, asal_instansi, tanda_tangan, foto_tamu, waktu_hadir) 
               VALUES 
-              ('$id_kunjungan', '$nama', '$jabatan', '$hp', '$instansi', '$nama_file_ttd', NOW())";
+              ('$id_kunjungan', '$nama', '$jabatan', '$hp', '$instansi', '$nama_file_ttd', '$nama_foto_tamu', NOW())";
     
     if (mysqli_query($koneksi, $query)) {
         echo "<script>window.location='buku_tamu.php?id=$id_kunjungan';</script>";
@@ -78,11 +109,15 @@ if (isset($_GET['aksi']) && $_GET['aksi'] == 'hapus') {
     $id_tamu = mysqli_real_escape_string($koneksi, $_GET['id_tamu']);
     $id_kunjungan = mysqli_real_escape_string($koneksi, $_GET['id_kunjungan']);
     
-    $q_file = mysqli_query($koneksi, "SELECT tanda_tangan FROM buku_tamu WHERE id_tamu='$id_tamu'");
+    $q_file = mysqli_query($koneksi, "SELECT tanda_tangan, foto_tamu FROM buku_tamu WHERE id_tamu='$id_tamu'");
     $data_file = mysqli_fetch_assoc($q_file);
     if($data_file && !empty($data_file['tanda_tangan'])){
         $path = "../uploads/ttd/" . $data_file['tanda_tangan'];
         if(file_exists($path)) unlink($path);
+    }
+    if($data_file && !empty($data_file['foto_tamu'])){
+        $path_foto = "../uploads/foto_tamu/" . $data_file['foto_tamu'];
+        if(file_exists($path_foto)) unlink($path_foto);
     }
 
     mysqli_query($koneksi, "DELETE FROM buku_tamu WHERE id_tamu='$id_tamu'");
@@ -249,6 +284,56 @@ if (isset($_GET['aksi']) && $_GET['aksi'] == 'hapus') {
 
                         <div class="mb-3 border border-dark p-2 rounded bg-light">
                             <div class="d-flex justify-content-between align-items-center mb-1">
+                                <label class="form-label text-dark fw-bold mb-0" style="font-size:13px;">Foto Tamu *</label>
+                            </div>
+                            
+                            <ul class="nav nav-tabs tabs-mini mb-2" id="fotoTab" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active py-1 border-dark" id="camera-tab" data-bs-toggle="tab" data-bs-target="#camera-panel" type="button" role="tab">[📷] Kamera</button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link py-1 border-dark" id="upload-foto-tab" data-bs-toggle="tab" data-bs-target="#upload-foto-panel" type="button" role="tab">[↑] Upload</button>
+                                </li>
+                            </ul>
+
+                            <div class="tab-content border border-dark rounded bg-white p-2" style="min-height: 160px;">
+                                <div class="tab-pane fade show active text-center" id="camera-panel" role="tabpanel">
+                                    <div class="mb-2">
+                                        <select id="camera-select" class="form-select form-select-sm border-dark mb-2" style="font-size:12px;">
+                                            <option value="">-- Pilih Kamera --</option>
+                                        </select>
+                                        <button type="button" id="btn-detect-camera" class="btn btn-sm btn-outline-dark fw-bold w-100 mb-2" onclick="detectCameras()">
+                                            <i class="ti ti-device-desktop-search me-1"></i> Deteksi Kamera Tersedia
+                                        </button>
+                                    </div>
+                                    <div id="camera-container" class="position-relative mb-2">
+                                        <video id="camera-video" class="border border-secondary rounded bg-dark" style="width:100%; max-height:180px; display:none;" autoplay playsinline></video>
+                                        <canvas id="camera-canvas" style="display:none;"></canvas>
+                                        <img id="camera-preview" class="border border-success rounded" style="width:100%; max-height:180px; display:none; object-fit:contain;" />
+                                    </div>
+                                    <div id="camera-buttons">
+                                        <button type="button" id="btn-start-camera" class="btn btn-sm btn-dark fw-bold" onclick="startCamera()" disabled>
+                                            <i class="ti ti-camera me-1"></i> Aktifkan Kamera
+                                        </button>
+                                        <button type="button" id="btn-capture" class="btn btn-sm btn-success fw-bold" style="display:none;" onclick="capturePhoto()">
+                                            <i class="ti ti-camera me-1"></i> Ambil Foto
+                                        </button>
+                                        <button type="button" id="btn-retake" class="btn btn-sm btn-warning fw-bold" style="display:none;" onclick="retakePhoto()">
+                                            <i class="ti ti-refresh me-1"></i> Ulangi
+                                        </button>
+                                    </div>
+                                    <input type="hidden" name="foto_camera" id="foto_camera_input">
+                                </div>
+                                <div class="tab-pane fade" id="upload-foto-panel" role="tabpanel">
+                                    <small class="text-muted d-block mb-2">Pilih file foto dari perangkat:</small>
+                                    <input type="file" name="foto_tamu" class="form-control form-control-sm border-dark" accept="image/*">
+                                    <small class="text-muted d-block mt-1" style="font-size: 10px;">Format: .PNG / .JPG</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3 border border-dark p-2 rounded bg-light">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
                                 <label class="form-label text-dark fw-bold mb-0" style="font-size:13px;">Tanda Tangan Digital *</label>
                             </div>
                             
@@ -306,6 +391,7 @@ if (isset($_GET['aksi']) && $_GET['aksi'] == 'hapus') {
                                     <th width="8%" class="text-center">No</th>
                                     <th>Nama &amp; Jabatan</th>
                                     <th>No HP</th>
+                                    <th width="15%" class="text-center">Foto</th>
                                     <th width="20%" class="text-center">TTD</th>
                                     <th class="text-center" width="10%">Aksi</th>
                                 </tr>
@@ -325,6 +411,15 @@ if (isset($_GET['aksi']) && $_GET['aksi'] == 'hapus') {
                                         <small class="text-muted"><em><?= htmlspecialchars($t['jabatan_peserta']); ?></em></small>
                                     </td>
                                     <td class="font-monospace text-muted" style="font-size:12px;"><?= htmlspecialchars($t['no_hp'] ?: '-'); ?></td>
+                                    <td class="text-center">
+                                        <?php if(!empty($t['foto_tamu'])): ?>
+                                            <div class="d-inline-block bg-white border border-secondary rounded p-1" style="max-width: 60px;">
+                                                <img src="../uploads/foto_tamu/<?= $t['foto_tamu']; ?>" alt="Foto" style="height: 40px; object-fit: contain;">
+                                            </div>
+                                        <?php else: ?>
+                                            <span class="badge bg-light text-muted border">-</span>
+                                        <?php endif; ?>
+                                    </td>
                                     <td class="text-center">
                                         <?php if(!empty($t['tanda_tangan'])): ?>
                                             <div class="d-inline-block bg-white border border-secondary rounded p-1" style="max-width: 80px;">
@@ -438,6 +533,133 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     });
 });
+</script>
+
+<!-- SCRIPT KAMERA FOTO TAMU -->
+<script type="text/javascript">
+let cameraStream = null;
+
+// Deteksi semua kamera yang tersedia di perangkat
+function detectCameras() {
+    navigator.mediaDevices.getUserMedia({ video: true })
+    .then(function(tempStream) {
+        // Stop temporary stream, hanya butuh izin
+        tempStream.getTracks().forEach(function(t) { t.stop(); });
+
+        navigator.mediaDevices.enumerateDevices()
+        .then(function(devices) {
+            const select = document.getElementById('camera-select');
+            select.innerHTML = '<option value="">-- Pilih Kamera --</option>';
+            let count = 0;
+            devices.forEach(function(device) {
+                if (device.kind === 'videoinput') {
+                    count++;
+                    const option = document.createElement('option');
+                    option.value = device.deviceId;
+                    option.text = device.label || ('Kamera ' + count);
+                    select.appendChild(option);
+                }
+            });
+            if (count === 0) {
+                alert('Tidak ada kamera yang terdeteksi di perangkat ini.');
+            } else {
+                // Auto-select kamera pertama
+                select.selectedIndex = 1;
+                document.getElementById('btn-start-camera').disabled = false;
+                alert(count + ' kamera berhasil terdeteksi. Silakan pilih lalu klik Aktifkan Kamera.');
+            }
+        });
+    })
+    .catch(function(err) {
+        alert('Tidak dapat mengakses kamera: ' + err.message + '\nPastikan browser mengizinkan akses kamera.');
+    });
+}
+
+// Enable/disable tombol aktifkan berdasarkan pilihan dropdown
+document.addEventListener('DOMContentLoaded', function() {
+    const sel = document.getElementById('camera-select');
+    if (sel) {
+        sel.addEventListener('change', function() {
+            document.getElementById('btn-start-camera').disabled = (this.value === '');
+        });
+    }
+});
+
+function startCamera() {
+    const video = document.getElementById('camera-video');
+    const btnStart = document.getElementById('btn-start-camera');
+    const btnCapture = document.getElementById('btn-capture');
+    const preview = document.getElementById('camera-preview');
+    const selectedDeviceId = document.getElementById('camera-select').value;
+
+    if (!selectedDeviceId) {
+        alert('Silakan pilih kamera terlebih dahulu!');
+        return;
+    }
+
+    if (preview) { preview.style.display = 'none'; }
+    document.getElementById('foto_camera_input').value = '';
+
+    // Stop stream lama jika ada
+    if (cameraStream) {
+        cameraStream.getTracks().forEach(function(track) { track.stop(); });
+    }
+
+    navigator.mediaDevices.getUserMedia({
+        video: { deviceId: { exact: selectedDeviceId }, width: { ideal: 640 }, height: { ideal: 480 } }
+    })
+    .then(function(stream) {
+        cameraStream = stream;
+        video.srcObject = stream;
+        video.style.display = 'block';
+        btnStart.style.display = 'none';
+        document.getElementById('btn-detect-camera').style.display = 'none';
+        document.getElementById('camera-select').style.display = 'none';
+        btnCapture.style.display = 'inline-block';
+        document.getElementById('btn-retake').style.display = 'none';
+    })
+    .catch(function(err) {
+        alert('Gagal membuka kamera: ' + err.message);
+    });
+}
+
+function capturePhoto() {
+    const video = document.getElementById('camera-video');
+    const canvas = document.getElementById('camera-canvas');
+    const preview = document.getElementById('camera-preview');
+    const fotoInput = document.getElementById('foto_camera_input');
+    const btnCapture = document.getElementById('btn-capture');
+    const btnRetake = document.getElementById('btn-retake');
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    const dataURL = canvas.toDataURL('image/png');
+    fotoInput.value = dataURL;
+
+    preview.src = dataURL;
+    preview.style.display = 'block';
+    video.style.display = 'none';
+    btnCapture.style.display = 'none';
+    btnRetake.style.display = 'inline-block';
+
+    if (cameraStream) {
+        cameraStream.getTracks().forEach(function(track) { track.stop(); });
+        cameraStream = null;
+    }
+}
+
+function retakePhoto() {
+    document.getElementById('camera-preview').style.display = 'none';
+    document.getElementById('foto_camera_input').value = '';
+    document.getElementById('btn-retake').style.display = 'none';
+    document.getElementById('btn-start-camera').style.display = 'inline-block';
+    document.getElementById('btn-detect-camera').style.display = 'inline-block';
+    document.getElementById('camera-select').style.display = 'block';
+    startCamera();
+}
 </script>
 
 <?php include 'template/footer.php'; ?>

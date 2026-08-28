@@ -61,7 +61,7 @@ if (isset($koneksi)) {
             <span class="pc-mtext">Scan QR Kedatangan</span>
           </a>
         </li>
-        <li class="pc-item <?= ($page == 'scan_qr') ? 'active' : '' ?>">
+        <li class="pc-item <?= ($page == 'scan_checkout') ? 'active' : '' ?>">
           <a href="scan_qr_checkout.php" class="pc-link">
             <span class="pc-micon"><i class="ti ti-qrcode"></i></span>
             <span class="pc-mtext">Scan QR Check-Out</span>

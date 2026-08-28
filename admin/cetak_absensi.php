@@ -173,7 +173,7 @@ $tanggal_indo = $hari_indo . ", " . date('d', strtotime($d['tgl_kunjungan'])) . 
                 <th width="5%">No</th>
                 <th>Nama Peserta</th>
                 <th>Jabatan</th>
-               
+                <th width="15%">Foto Tamu</th>
                 <th width="20%">Tanda Tangan</th>
             </tr>
         </thead>
@@ -187,7 +187,13 @@ $tanggal_indo = $hari_indo . ", " . date('d', strtotime($d['tgl_kunjungan'])) . 
                 <td style="text-align: center;"><?= $no++; ?></td>
                 <td><?= $t['nama_peserta']; ?></td>
                 <td><?= $t['jabatan_peserta']; ?></td>
-             
+                <td style="text-align: center;">
+                    <?php if(!empty($t['foto_tamu'])): ?>
+                        <img src="../uploads/foto_tamu/<?= $t['foto_tamu']; ?>" style="height: 35px; border: 1px solid #ccc; padding: 2px;">
+                    <?php else: ?>
+                        -
+                    <?php endif; ?>
+                </td>
                 <td style="text-align: center;">
                     <?php if(!empty($t['tanda_tangan'])): ?>
                         <img src="../uploads/ttd/<?= $t['tanda_tangan']; ?>" style="height: 35px;">
