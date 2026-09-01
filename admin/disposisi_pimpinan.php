@@ -86,9 +86,33 @@ if (isset($_POST['proses_disposisi'])) {
     // Konfirmasi override jika PJ di luar jam ketersediaan / bentrok (dikirim dari JS)
     $konfirmasi_override = isset($_POST['konfirmasi_override']) && $_POST['konfirmasi_override'] == '1';
 
+    // Ambil data kunjungan untuk validasi kapasitas & jadwal
+    $q_kunj = mysqli_query($koneksi, "SELECT * FROM kunjungan WHERE id_kunjungan = '$id_kunjungan'");
+    $data_kunj = mysqli_fetch_assoc($q_kunj);
+    
+    // Ambil data ruangan
+    $q_ruang = mysqli_query($koneksi, "SELECT * FROM ruangan WHERE id_ruangan = '$id_ruangan'");
+    $data_ruang = mysqli_fetch_assoc($q_ruang);
+
+    // Cek apakah ruangan sudah dijadwalkan untuk kunjungan lain di tanggal & jam sama (Anti Double Booking Ruangan)
+    $q_bentrok_ruang = mysqli_query($koneksi, "SELECT nama_instansi_tamu FROM kunjungan 
+        WHERE id_ruangan = '$id_ruangan' 
+        AND tgl_kunjungan = '{$data_kunj['tgl_kunjungan']}' 
+        AND waktu_kunjungan = '{$data_kunj['waktu_kunjungan']}' 
+        AND status_kegiatan IN ('dijadwalkan', 'sedang berkunjung') 
+        AND id_kunjungan != '$id_kunjungan'");
+    $bentrok_ruangan = ($q_bentrok_ruang && mysqli_num_rows($q_bentrok_ruang) > 0);
+
     // Batasan Proposal: Validasi Passphrase sandi frasa rahasia pimpinan untuk mengaktifkan TTE
     if ($passphrase !== "pimpinan123") {
         $pesan_gagal = "Gagal! Passphrase (Sandi Frasa) Keamanan TTE Pimpinan Salah.";
+    } elseif ($keputusan == 'setuju' && $data_ruang && !empty($data_kunj['jumlah_peserta_rencana']) && $data_kunj['jumlah_peserta_rencana'] > $data_ruang['kapasitas']) {
+        // Validasi Kapasitas Ruangan vs Jumlah Peserta
+        $pesan_gagal = "Gagal! Kapasitas ruangan <b>" . htmlspecialchars($data_ruang['nama_ruangan']) . "</b> (Maksimal " . $data_ruang['kapasitas'] . " Orang) tidak mencukupi untuk jumlah rombongan tamu (<b>" . $data_kunj['jumlah_peserta_rencana'] . " Orang</b>). Silakan pilih ruangan dengan kapasitas yang lebih memadai.";
+    } elseif ($keputusan == 'setuju' && $bentrok_ruangan) {
+        // Validasi Anti Double Booking Ruangan
+        $data_b_r = mysqli_fetch_assoc($q_bentrok_ruang);
+        $pesan_gagal = "Gagal! Ruangan <b>" . htmlspecialchars($data_ruang['nama_ruangan']) . "</b> sudah digunakan untuk kunjungan instansi <b>" . htmlspecialchars($data_b_r['nama_instansi_tamu']) . "</b> pada tanggal dan jam tersebut. Silakan pilih ruangan lain.";
     } elseif ($keputusan == 'setuju' && !$konfirmasi_override && cek_pj_tidak_tersedia($koneksi, $id_pj, $id_kunjungan)) {
         // Validasi sisi server: PJ yang dipilih tidak tersedia pada hari/jam kunjungan
         // dan pimpinan belum mencentang konfirmasi override.
@@ -215,11 +239,38 @@ if (isset($_POST['proses_disposisi'])) {
 
                                                 <div class="mb-3">
                                                     <label class="form-label fw-bold text-dark">Rekomendasi Ruangan Pertemuan *</label>
+                                                    <small class="d-block text-muted mb-1" style="font-size:10px;">Jumlah Rombongan Tamu: <b class="text-primary"><?= $d['jumlah_peserta_rencana']; ?> Orang</b></small>
                                                     <select name="id_ruangan" class="form-select form-select-sm" required>
+                                                        <option value="">-- Pilih Ruangan --</option>
                                                         <?php
-                                                        $r_query = mysqli_query($koneksi, "SELECT * FROM ruangan");
+                                                        $r_query = mysqli_query($koneksi, "SELECT * FROM ruangan ORDER BY kapasitas ASC");
                                                         while($r = mysqli_fetch_array($r_query)){
-                                                            echo "<option value='{$r['id_ruangan']}'>{$r['nama_ruangan']} ({$r['lantai']})</option>";
+                                                            $kapasitas_r = (int)$r['kapasitas'];
+                                                            $peserta_k = (int)$d['jumlah_peserta_rencana'];
+                                                            
+                                                            // Cek apakah ruangan bentrok di tanggal & jam sama
+                                                            $q_cek_bentrok = mysqli_query($koneksi, "SELECT k.nama_instansi_tamu FROM kunjungan k 
+                                                                WHERE k.id_ruangan = '{$r['id_ruangan']}' 
+                                                                AND k.tgl_kunjungan = '{$d['tgl_kunjungan']}' 
+                                                                AND k.waktu_kunjungan = '{$d['waktu_kunjungan']}' 
+                                                                AND k.status_kegiatan IN ('dijadwalkan', 'sedang berkunjung') 
+                                                                AND k.id_kunjungan != '{$d['id_kunjungan']}'");
+                                                            $is_bentrok = ($q_cek_bentrok && mysqli_num_rows($q_cek_bentrok) > 0);
+                                                            
+                                                            $status_note = "";
+                                                            $style = "";
+                                                            if ($is_bentrok) {
+                                                                $status_note = " [⛔ BENTROK JADWAL]";
+                                                                $style = "style='color:red; font-weight:bold;'";
+                                                            } elseif ($kapasitas_r < $peserta_k) {
+                                                                $status_note = " [⚠️ KURANG: Maks {$kapasitas_r} < Peserta {$peserta_k}]";
+                                                                $style = "style='color:#d97706; font-weight:bold;'";
+                                                            } else {
+                                                                $status_note = " [✓ Cukup: Maks {$kapasitas_r} Org]";
+                                                                $style = "style='color:#16a34a;'";
+                                                            }
+                                                            
+                                                            echo "<option value='{$r['id_ruangan']}' $style>{$r['nama_ruangan']} ({$r['lantai']}) {$status_note}</option>";
                                                         }
                                                         ?>
                                                     </select>

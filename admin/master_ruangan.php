@@ -7,26 +7,38 @@ include 'template/sidebar.php';
 
 // 1. TAMBAH DATA
 if (isset($_POST['tambah'])) {
-    $nama = $_POST['nama_ruangan'];
-    $lantai = $_POST['lantai'];
-    $kapasitas = $_POST['kapasitas'];
+    $nama = mysqli_real_escape_string($koneksi, trim($_POST['nama_ruangan']));
+    $lantai = mysqli_real_escape_string($koneksi, trim($_POST['lantai']));
+    $kapasitas = (int)$_POST['kapasitas'];
     
-    $query = "INSERT INTO ruangan (nama_ruangan, lantai, kapasitas) VALUES ('$nama', '$lantai', '$kapasitas')";
-    if (mysqli_query($koneksi, $query)) {
-        echo "<script>alert('Data Berhasil Ditambah!'); window.location='master_ruangan.php';</script>";
+    // Validasi Anti Duplikat Nama Ruangan
+    $cek_r = mysqli_query($koneksi, "SELECT id_ruangan FROM ruangan WHERE LOWER(nama_ruangan) = LOWER('$nama')");
+    if (mysqli_num_rows($cek_r) > 0) {
+        echo "<script>alert('Gagal! Ruangan dengan nama \"$nama\" sudah ada. Harap gunakan nama lain.'); window.location='master_ruangan.php';</script>";
+    } else {
+        $query = "INSERT INTO ruangan (nama_ruangan, lantai, kapasitas) VALUES ('$nama', '$lantai', '$kapasitas')";
+        if (mysqli_query($koneksi, $query)) {
+            echo "<script>alert('Data Berhasil Ditambah!'); window.location='master_ruangan.php';</script>";
+        }
     }
 }
 
 // 2. EDIT DATA
 if (isset($_POST['edit'])) {
-    $id = $_POST['id_ruangan'];
-    $nama = $_POST['nama_ruangan'];
-    $lantai = $_POST['lantai'];
-    $kapasitas = $_POST['kapasitas'];
+    $id = mysqli_real_escape_string($koneksi, $_POST['id_ruangan']);
+    $nama = mysqli_real_escape_string($koneksi, trim($_POST['nama_ruangan']));
+    $lantai = mysqli_real_escape_string($koneksi, trim($_POST['lantai']));
+    $kapasitas = (int)$_POST['kapasitas'];
     
-    $query = "UPDATE ruangan SET nama_ruangan='$nama', lantai='$lantai', kapasitas='$kapasitas' WHERE id_ruangan='$id'";
-    if (mysqli_query($koneksi, $query)) {
-        echo "<script>alert('Data Berhasil Diubah!'); window.location='master_ruangan.php';</script>";
+    // Validasi Anti Duplikat Nama Ruangan pada ID lain
+    $cek_r = mysqli_query($koneksi, "SELECT id_ruangan FROM ruangan WHERE LOWER(nama_ruangan) = LOWER('$nama') AND id_ruangan != '$id'");
+    if (mysqli_num_rows($cek_r) > 0) {
+        echo "<script>alert('Gagal! Ruangan dengan nama \"$nama\" sudah ada pada data lain.'); window.location='master_ruangan.php';</script>";
+    } else {
+        $query = "UPDATE ruangan SET nama_ruangan='$nama', lantai='$lantai', kapasitas='$kapasitas' WHERE id_ruangan='$id'";
+        if (mysqli_query($koneksi, $query)) {
+            echo "<script>alert('Data Berhasil Diubah!'); window.location='master_ruangan.php';</script>";
+        }
     }
 }
 

@@ -51,10 +51,17 @@ if (isset($_POST['tambah'])) {
         move_uploaded_file($file_tmp, $target_dir . $nama_file_ttd);
     }
     
-    // Insert beserta Pangkat Golongan
-    $query = "INSERT INTO penanggung_jawab (nama_pj, nip, pangkat_golongan, jabatan, no_hp, file_ttd) VALUES ('$nama', '$nip', '$pangkat', '$jabatan', '$hp', '$nama_file_ttd')";
-    if (mysqli_query($koneksi, $query)) {
-        echo "<script>alert('PJ Berhasil Ditambah!'); window.location='master_pj.php';</script>";
+    // Validasi Anti Duplikat NIP / Nama PJ
+    $cek_pj = mysqli_query($koneksi, "SELECT id_pj FROM penanggung_jawab WHERE (!empty('$nip') AND nip = '$nip') OR LOWER(nama_pj) = LOWER('$nama')");
+    if (mysqli_num_rows($cek_pj) > 0) {
+        if (!empty($nama_file_ttd) && file_exists($target_dir . $nama_file_ttd)) unlink($target_dir . $nama_file_ttd);
+        echo "<script>alert('Gagal! Penanggung Jawab dengan Nama atau NIP tersebut sudah terdaftar.'); window.location='master_pj.php';</script>";
+    } else {
+        // Insert beserta Pangkat Golongan
+        $query = "INSERT INTO penanggung_jawab (nama_pj, nip, pangkat_golongan, jabatan, no_hp, file_ttd) VALUES ('$nama', '$nip', '$pangkat', '$jabatan', '$hp', '$nama_file_ttd')";
+        if (mysqli_query($koneksi, $query)) {
+            echo "<script>alert('PJ Berhasil Ditambah!'); window.location='master_pj.php';</script>";
+        }
     }
 }
 
@@ -67,40 +74,46 @@ if (isset($_POST['edit'])) {
     $jabatan = mysqli_real_escape_string($koneksi, $_POST['jabatan']);
     $hp      = mysqli_real_escape_string($koneksi, $_POST['no_hp']);
     
-    // Ambil data TTD lama dari database sebagai cadangan jika tidak diubah
-    $q_old = mysqli_query($koneksi, "SELECT file_ttd FROM penanggung_jawab WHERE id_pj='$id'");
-    $row_old = mysqli_fetch_assoc($q_old);
-    $nama_file_ttd = $row_old['file_ttd'] ?? '';
-
-    // A. JIKA ADMIN MERUBAH TTD PAKAI CANVAS PAD
-    if (!empty($_POST['ttd_canvas_edit'])) {
-        // Simpan langsung string Base64 canvas baru ke database
-        $nama_file_ttd = mysqli_real_escape_string($koneksi, $_POST['ttd_canvas_edit']);
-    } 
-    // B. JIKA ADMIN MERUBAH TTD PAKAI UPLOAD FILE MANUAL (.PNG/.JPG)
-    elseif (!empty($_FILES['ttd_file_edit']['name'])) {
-        $file_name = $_FILES['ttd_file_edit']['name'];
-        $file_tmp  = $_FILES['ttd_file_edit']['tmp_name'];
-        $ext       = pathinfo($file_name, PATHINFO_EXTENSION);
-        
-        $nama_file_ttd = "PJ_TTD_F_" . time() . "_" . rand(100,999) . "." . $ext;
-        move_uploaded_file($file_tmp, "../uploads/ttd/" . $nama_file_ttd);
-    }
-    
-    // Jalankan Query Update beserta Pangkat Golongan
-    $query = "UPDATE penanggung_jawab SET 
-                nama_pj='$nama', 
-                nip='$nip', 
-                pangkat_golongan='$pangkat',
-                jabatan='$jabatan', 
-                no_hp='$hp', 
-                file_ttd='$nama_file_ttd' 
-              WHERE id_pj='$id'";
-              
-    if (mysqli_query($koneksi, $query)) {
-        echo "<script>alert('PJ Berhasil Diupdate!'); window.location='master_pj.php';</script>";
+    // Validasi Anti Duplikat NIP / Nama PJ pada record lain
+    $cek_pj = mysqli_query($koneksi, "SELECT id_pj FROM penanggung_jawab WHERE ((!empty('$nip') AND nip = '$nip') OR LOWER(nama_pj) = LOWER('$nama')) AND id_pj != '$id'");
+    if (mysqli_num_rows($cek_pj) > 0) {
+        echo "<script>alert('Gagal! Penanggung Jawab dengan Nama atau NIP tersebut sudah digunakan pada data lain.'); window.location='master_pj.php';</script>";
     } else {
-        echo "<script>alert('Gagal Update: " . mysqli_error($koneksi) . "');</script>";
+        // Ambil data TTD lama dari database sebagai cadangan jika tidak diubah
+        $q_old = mysqli_query($koneksi, "SELECT file_ttd FROM penanggung_jawab WHERE id_pj='$id'");
+        $row_old = mysqli_fetch_assoc($q_old);
+        $nama_file_ttd = $row_old['file_ttd'] ?? '';
+
+        // A. JIKA ADMIN MERUBAH TTD PAKAI CANVAS PAD
+        if (!empty($_POST['ttd_canvas_edit'])) {
+            // Simpan langsung string Base64 canvas baru ke database
+            $nama_file_ttd = mysqli_real_escape_string($koneksi, $_POST['ttd_canvas_edit']);
+        } 
+        // B. JIKA ADMIN MERUBAH TTD PAKAI UPLOAD FILE MANUAL (.PNG/.JPG)
+        elseif (!empty($_FILES['ttd_file_edit']['name'])) {
+            $file_name = $_FILES['ttd_file_edit']['name'];
+            $file_tmp  = $_FILES['ttd_file_edit']['tmp_name'];
+            $ext       = pathinfo($file_name, PATHINFO_EXTENSION);
+            
+            $nama_file_ttd = "PJ_TTD_F_" . time() . "_" . rand(100,999) . "." . $ext;
+            move_uploaded_file($file_tmp, "../uploads/ttd/" . $nama_file_ttd);
+        }
+        
+        // Jalankan Query Update beserta Pangkat Golongan
+        $query = "UPDATE penanggung_jawab SET 
+                    nama_pj='$nama', 
+                    nip='$nip', 
+                    pangkat_golongan='$pangkat',
+                    jabatan='$jabatan', 
+                    no_hp='$hp', 
+                    file_ttd='$nama_file_ttd' 
+                  WHERE id_pj='$id'";
+                  
+        if (mysqli_query($koneksi, $query)) {
+            echo "<script>alert('PJ Berhasil Diupdate!'); window.location='master_pj.php';</script>";
+        } else {
+            echo "<script>alert('Gagal Update: " . mysqli_error($koneksi) . "');</script>";
+        }
     }
 }
 

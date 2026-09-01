@@ -24,59 +24,71 @@ if (isset($_POST['kirim_pengajuan'])) {
     $jumlah = $_POST['jumlah'];
     $materi = mysqli_real_escape_string($koneksi, $_POST['materi']);
 
-    // 2. GENERATE KODE BOOKING UNIK (Contoh: REQ-2025-X7A2)
-    $tahun = date('Y');
-    $random = strtoupper(substr(md5(time()), 0, 4)); // 4 karakter acak
-    $kode_booking = "REQ-$tahun-$random";
-
-    // 3. PROSES UPLOAD FILE SURAT
-    $file_nama = $_FILES['file_surat']['name'];
-    $file_tmp = $_FILES['file_surat']['tmp_name'];
-    $file_size = $_FILES['file_surat']['size']; // Ambil ukuran file
-    $file_ext = strtolower(pathinfo($file_nama, PATHINFO_EXTENSION));
+    // 2. VALIDASI ANTI DOUBLE INPUT: Cek apakah instansi yang sama sudah pernah mengajukan kunjungan di tanggal & jam yang sama
+    $cek_dobel_aju = mysqli_query($koneksi, "SELECT kode_booking FROM kunjungan 
+        WHERE LOWER(nama_instansi_tamu) = LOWER('$nama_instansi') 
+        AND tgl_kunjungan = '$tgl_kunjungan' 
+        AND waktu_kunjungan = '$jam' 
+        AND status_kegiatan IN ('pending', 'dijadwalkan', 'sedang berkunjung')");
     
-    // Validasi Ekstensi File
-    $allowed = array('pdf', 'jpg', 'jpeg', 'png');
-    
-    if(in_array($file_ext, $allowed)){
-        // Validasi Ukuran File Maksimal 5MB (Sesuai Proposal)
-        if($file_size <= 5242880) { 
-            // Rename file agar tidak bentrok (tambah timestamp)
-            $file_baru = "SURAT_" . time() . "." . $file_ext;
-            $folder_tujuan = "uploads/" . $file_baru;
+    if (mysqli_num_rows($cek_dobel_aju) > 0) {
+        $d_dobel = mysqli_fetch_assoc($cek_dobel_aju);
+        $pesan_error = "Gagal! Permohonan untuk instansi <b>" . htmlspecialchars($nama_instansi) . "</b> pada tanggal dan jam tersebut sudah pernah diajukan sebelumnya dengan Kode Booking: <b>" . $d_dobel['kode_booking'] . "</b>. Mohon cek status atau gunakan jadwal lain.";
+    } else {
+        // 3. GENERATE KODE BOOKING UNIK (Contoh: REQ-2025-X7A2)
+        $tahun = date('Y');
+        $random = strtoupper(substr(md5(time()), 0, 4)); // 4 karakter acak
+        $kode_booking = "REQ-$tahun-$random";
 
-            // --- CEK FOLDER ---
-            if (!file_exists('uploads')) {
-                mkdir('uploads', 0777, true); // Buat folder jika belum ada
-            }
-            
-            if(move_uploaded_file($file_tmp, $folder_tujuan)){
-                
-                // 4. SIMPAN KE DATABASE
-                $query = "INSERT INTO kunjungan 
-                          (kode_booking, email_pemohon, no_hp_pemohon, id_kategori, nama_instansi_tamu, alamat_instansi, 
-                           tgl_surat_permohonan, tgl_kunjungan, waktu_kunjungan, 
-                           jumlah_peserta_rencana, materi_kunjungan, file_surat_permohonan, status_kegiatan)
-                          VALUES 
-                          ('$kode_booking', '$email', '$no_hp', '$id_kategori', '$nama_instansi', '$alamat', 
-                           '$tgl_surat', '$tgl_kunjungan', '$jam', 
-                           '$jumlah', '$materi', '$file_baru', 'pending')";
-                
-                if(mysqli_query($koneksi, $query)){
-                    $kode_booking_baru = $kode_booking; // Simpan untuk ditampilkan di notifikasi sukses
-                    $pesan_sukses = "Permohonan Berhasil Dikirim!";
-                } else {
-                    $pesan_error = "Database Error: " . mysqli_error($koneksi);
+        // 4. PROSES UPLOAD FILE SURAT
+        $file_nama = $_FILES['file_surat']['name'];
+        $file_tmp = $_FILES['file_surat']['tmp_name'];
+        $file_size = $_FILES['file_surat']['size']; // Ambil ukuran file
+        $file_ext = strtolower(pathinfo($file_nama, PATHINFO_EXTENSION));
+        
+        // Validasi Ekstensi File
+        $allowed = array('pdf', 'jpg', 'jpeg', 'png');
+        
+        if(in_array($file_ext, $allowed)){
+            // Validasi Ukuran File Maksimal 5MB (Sesuai Proposal)
+            if($file_size <= 5242880) { 
+                // Rename file agar tidak bentrok (tambah timestamp)
+                $file_baru = "SURAT_" . time() . "." . $file_ext;
+                $folder_tujuan = "uploads/" . $file_baru;
+
+                // --- CEK FOLDER ---
+                if (!file_exists('uploads')) {
+                    mkdir('uploads', 0777, true); // Buat folder jika belum ada
                 }
+                
+                if(move_uploaded_file($file_tmp, $folder_tujuan)){
+                    
+                    // 5. SIMPAN KE DATABASE
+                    $query = "INSERT INTO kunjungan 
+                              (kode_booking, email_pemohon, no_hp_pemohon, id_kategori, nama_instansi_tamu, alamat_instansi, 
+                               tgl_surat_permohonan, tgl_kunjungan, waktu_kunjungan, 
+                               jumlah_peserta_rencana, materi_kunjungan, file_surat_permohonan, status_kegiatan)
+                              VALUES 
+                              ('$kode_booking', '$email', '$no_hp', '$id_kategori', '$nama_instansi', '$alamat', 
+                               '$tgl_surat', '$tgl_kunjungan', '$jam', 
+                               '$jumlah', '$materi', '$file_baru', 'pending')";
+                    
+                    if(mysqli_query($koneksi, $query)){
+                        $kode_booking_baru = $kode_booking; // Simpan untuk ditampilkan di notifikasi sukses
+                        $pesan_sukses = "Permohonan Berhasil Dikirim!";
+                    } else {
+                        $pesan_error = "Database Error: " . mysqli_error($koneksi);
+                    }
 
+                } else {
+                    $pesan_error = "Gagal mengupload file. Pastikan folder 'uploads' sudah dibuat.";
+                }
             } else {
-                $pesan_error = "Gagal mengupload file. Pastikan folder 'uploads' sudah dibuat.";
+                $pesan_error = "Ukuran file terlalu besar! Maksimal 5MB.";
             }
         } else {
-            $pesan_error = "Ukuran file terlalu besar! Maksimal 5MB.";
+            $pesan_error = "Format file salah! Harap upload PDF atau Gambar (JPG/PNG).";
         }
-    } else {
-        $pesan_error = "Format file salah! Harap upload PDF atau Gambar (JPG/PNG).";
     }
 }
 ?>

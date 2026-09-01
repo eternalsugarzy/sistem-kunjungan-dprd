@@ -91,6 +91,17 @@ if (isset($_POST['tambah_peserta'])) {
         move_uploaded_file($ft_tmp, "../uploads/foto_tamu/" . $nama_foto_tamu);
     }
 
+    // Validasi Anti Double Input: Cek apakah nama peserta sudah terdaftar pada kunjungan ini
+    $cek_duplikat = mysqli_query($koneksi, "SELECT id_tamu FROM buku_tamu WHERE id_kunjungan = '$id_kunjungan' AND LOWER(nama_peserta) = LOWER('$nama')");
+    if (mysqli_num_rows($cek_duplikat) > 0) {
+        // Hapus file ttd/foto yang baru dibuat agar tidak jadi sampah
+        if (!empty($nama_file_ttd) && file_exists("../uploads/ttd/" . $nama_file_ttd)) unlink("../uploads/ttd/" . $nama_file_ttd);
+        if (!empty($nama_foto_tamu) && file_exists("../uploads/foto_tamu/" . $nama_foto_tamu)) unlink("../uploads/foto_tamu/" . $nama_foto_tamu);
+        
+        echo "<script>alert('Gagal! Peserta dengan nama \"$nama\" sudah terdaftar dalam buku tamu kunjungan ini (Mencegah input ganda).'); window.location='buku_tamu.php?id=$id_kunjungan';</script>";
+        exit;
+    }
+
     // Simpan ke database
     $query = "INSERT INTO buku_tamu 
               (id_kunjungan, nama_peserta, jabatan_peserta, no_hp, asal_instansi, tanda_tangan, foto_tamu, waktu_hadir) 

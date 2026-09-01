@@ -15,6 +15,16 @@ if (!$d) {
     exit;
 }
 
+// Validasi Approval Final Pimpinan: Tiket hanya aktif setelah status disetujui (dijadwalkan/sedang berkunjung/selesai)
+$stat_tiket = strtolower($d['status_kegiatan']);
+if ($stat_tiket == 'pending') {
+    echo "<script>alert('E-Ticket belum aktif! Permohonan kunjungan Anda masih menunggu proses verifikasi dan persetujuan (disposisi) final dari pimpinan.'); window.location.href='cek_status.php?kode=" . urlencode($kode) . "';</script>";
+    exit;
+} elseif ($stat_tiket == 'batal') {
+    echo "<script>alert('E-Ticket tidak dapat dicetak karena permohonan kunjungan telah dibatalkan/ditolak.'); window.location.href='cek_status.php?kode=" . urlencode($kode) . "';</script>";
+    exit;
+}
+
 // Logika Cek QR Code (Lokal vs API Fallback dengan Compact Token)
 $ts = isset($d['created_at']) && !empty($d['created_at']) ? strtotime($d['created_at']) : 1787900000;
 if ($ts <= 0) $ts = 1787900000;

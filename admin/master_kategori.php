@@ -29,17 +29,23 @@ if (isset($koneksi)) {
 // LOGIC PHP: TAMBAH KATEGORI (HANYA BERJALAN JIKA TABEL ADA)
 // ---------------------------------------------------------
 if (isset($_POST['tambah_kategori']) && $table_exists) {
-    $nama_kategori = mysqli_real_escape_string($koneksi, $_POST['nama_kategori']);
-    $kode_kategori = mysqli_real_escape_string($koneksi, $_POST['kode_kategori']);
-    $deskripsi     = mysqli_real_escape_string($koneksi, $_POST['deskripsi']);
+    $nama_kategori = mysqli_real_escape_string($koneksi, trim($_POST['nama_kategori']));
+    $kode_kategori = mysqli_real_escape_string($koneksi, trim($_POST['kode_kategori']));
+    $deskripsi     = mysqli_real_escape_string($koneksi, trim($_POST['deskripsi']));
     
-    $query_ins = "INSERT INTO kategori_kunjungan (nama_kategori, kode_kategori, deskripsi, is_active) 
-                  VALUES ('$nama_kategori', '$kode_kategori', '$deskripsi', 1)";
-                  
-    if (mysqli_query($koneksi, $query_ins)) {
-        $pesan_sukses = "Kategori Baru Berhasil Ditambahkan!";
+    // Validasi Anti Duplikat Nama & Kode Kategori
+    $cek_kat = mysqli_query($koneksi, "SELECT id_kategori FROM kategori_kunjungan WHERE LOWER(nama_kategori) = LOWER('$nama_kategori') OR LOWER(kode_kategori) = LOWER('$kode_kategori')");
+    if (mysqli_num_rows($cek_kat) > 0) {
+        $pesan_gagal = "Gagal! Kategori dengan nama atau kode tersebut sudah ada dalam sistem (Mencegah input ganda).";
     } else {
-        $pesan_gagal = "Gagal menambah data: " . mysqli_error($koneksi);
+        $query_ins = "INSERT INTO kategori_kunjungan (nama_kategori, kode_kategori, deskripsi, is_active) 
+                      VALUES ('$nama_kategori', '$kode_kategori', '$deskripsi', 1)";
+                      
+        if (mysqli_query($koneksi, $query_ins)) {
+            $pesan_sukses = "Kategori Baru Berhasil Ditambahkan!";
+        } else {
+            $pesan_gagal = "Gagal menambah data: " . mysqli_error($koneksi);
+        }
     }
 }
 
