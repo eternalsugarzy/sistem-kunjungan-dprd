@@ -1,82 +1,118 @@
 # 🏛️ SIM-KUNJUNGAN DPRD KOTA BANJARMASIN
-> **Sistem Informasi Manajemen Pelayanan Kunjungan Kerja & Buku Tamu Digital Berbasis QR Code Anti-Copy**
+> **Sistem Informasi Manajemen Pelayanan Kunjungan Kerja & Buku Tamu Digital Berbasis QR Code Anti-Copy (HMAC-SHA256)**
 
-Aplikasi berbasis web untuk digitalisasi tata kelola penerimaan permohonan kunjungan kerja, verifikasi jadwal, penerbitan E-Ticket QR Code tersertifikasi digital (*Anti-Copy HMAC-SHA256*), presensi kehadiran buku tamu digital dengan capture foto langsung, serta pencatatan kepulangan (*Check-Out*) pada Sekretariat DPRD Kota Banjarmasin.
+[![PHP Version](https://img.shields.io/badge/PHP-8.x%20Native-777BB4?style=for-the-badge&logo=php&logoColor=white)](https://php.net)
+[![Database](https://img.shields.io/badge/MySQL-MariaDB-4479A1?style=for-the-badge&logo=mysql&logoColor=white)](https://mysql.com)
+[![Frontend](https://img.shields.io/badge/Bootstrap-5.3-7952B3?style=for-the-badge&logo=bootstrap&logoColor=white)](https://getbootstrap.com)
+[![Security](https://img.shields.io/badge/QR%20Security-HMAC--SHA256-success?style=for-the-badge&logo=auth0&logoColor=white)](#)
+[![Status](https://img.shields.io/badge/Status-Tested%20%26%20Verified-blue?style=for-the-badge)](#)
+
+Aplikasi web modern untuk mendigitalisasi dan mengamankan seluruh siklus pelayanan tamu dan kunjungan kerja di **Sekretariat DPRD Kota Banjarmasin**. Mulai dari pengajuan online, otorisasi pimpinan ber-TTE dengan validasi kapasitas ruangan, penerbitan E-Ticket QR Code tersertifikasi digital (*Anti-Copy*), presensi kehadiran buku tamu digital dengan live photo capture, hingga pencatatan kepulangan (*Check-Out*).
 
 ---
 
-## 🌟 Fitur Utama Sistem
+## 🌟 Fitur Unggulan & Standar Keamanan Sistem
 
-### 1. 📋 Pengajuan Kunjungan Online (Publik)
-- Formulir permohonan kunjungan online bagi instansi/masyarakat luar.
-- Upload surat permohonan resmi (`.pdf`, `.jpg`, `.png`, maks. 5MB).
-- Otomatis membuat **Kode Booking Unik** (contoh: `REQ-2026-8E14`).
+### 1. 📋 Pengajuan Kunjungan Mandiri (Publik)
+- Formulir publik responsif untuk instansi pemerintah/lembaga masyarakat luar daerah.
+- Upload surat permohonan resmi (`.pdf`, `.jpg`, `.png`, maks 5MB).
+- Otomatis membuat **Kode Booking Unik** (Format: `REQ-YYYY-XXXX`).
+- **Proteksi Anti Double-Input**: Mencegah instansi yang sama mengajukan permohonan ganda pada tanggal & jam yang persis sama.
 - Pelacakan status permohonan secara mandiri di halaman **Cek Status**.
 
-### 2. 🔐 Keamanan QR Code Anti-Copy (Compact Token HMAC-SHA256)
-- **Format Token Ringkas**: `KODE_BOOKING|TIMESTAMP|HASH_SIGNATURE` (Hanya ~35 karakter, titik QR renggang sehingga sangat cepat di-scan).
-- **Digital Signature**: Setiap QR Code ditandatangani menggunakan `HMAC-SHA256` dengan kunci rahasia server untuk mencegah pemalsuan/duplikasi tiket.
-- **Validasi Jadwal Ketat**: QR Code hanya dapat digunakan pada tanggal kunjungan yang sah (Hari H).
-- **Deteksi Expired Otomatis**: QR Code otomatis kedaluwarsa jika jadwal kunjungan telah terlewati.
-- **Single-Use Check-In Rule**: QR Code hanya berlaku 1x Check-In, sistem otomatis menolak pemindaian ganda.
+### 2. 👔 Disposisi Pimpinan & Validasi Kapasitas Ruangan
+- **Validasi Kapasitas Ruangan vs Jumlah Peserta**: Sistem otomatis memeriksa kapasitas ruangan terhadap jumlah rombongan. Jika kapasitas ruangan tidak mencukupi (misal: peserta 40 orang di ruangan berkapasitas 25 orang), sistem menolak dan meminta memilih ruangan yang memadai.
+- **Validasi Anti Double-Booking Ruangan**: Mencegah 2 kunjungan berbeda dijadwalkan pada ruangan yang sama di tanggal & jam yang bentrok.
+- **Otorisasi TTE Pimpinan**: Penerbitan lembar disposisi resmi bertanda tangan elektronik (TTE).
+- **Aktivasi Tiket Final**: E-Ticket QR Code **hanya aktif dan dapat dicetak** setelah permohonan disetujui (*Approved*) oleh pimpinan.
 
-### 3. 📷 Pemindai Multi-Perangkat (Check-In & Check-Out)
-- **Check-In Kedatangan (`scan_qr.php`)**: Memindai E-Ticket kedatangan via Webcam Laptop, Kamera HP, maupun Barcode Scanner USB fisik.
-- **Check-Out Kepulangan (`scan_qr_checkout.php`)**: Memindai QR pada Kartu Tamu Sementara saat kepulangan untuk mengubah status kunjungan menjadi **Selesai** dan mencatat waktu pulang secara otomatis.
+### 3. 🔐 Keamanan QR Code Anti-Copy (Compact Token HMAC-SHA256)
+- **Format Token Ringkas**: `KODE_BOOKING|TIMESTAMP|HASH_SIGNATURE` (Hanya ~35 karakter).
+  $$\text{Contoh: } \texttt{REQ-2026-8E14|1787931400|e659c32d3a}$$
+- **Pemindaian Secepat Kilat (< 0.1 Detik)**: Karena karakter pendek, matriks QR sangat renggang sehingga langsung fokus dan terbaca instan oleh kamera laptop, HP, maupun barcode scanner USB.
+- **Verifikasi Digital Signature**: Setiap QR Code diverifikasi dengan kunci rahasia server (`HMAC-SHA256`). Tiket yang diubah/dipalsukan akan langsung ditolak sistem.
+- **Validasi Jadwal Hari H**: Tiket hanya berlaku pada tanggal kunjungan resmi.
+- **Deteksi Expired Otomatis**: Tiket otomatis kedaluwarsa jika jadwal telah berlalu atau sesi telah selesai.
+- **Single-Use Check-In Rule**: QR Code hanya berlaku 1x Check-In, mencegah pemindaian berulang kali.
 
-### 4. ✍️ Buku Tamu Digital & Capture Foto Peserta
-- **Live Camera Capture**: Pengambilan foto wajah tamu langsung dari kamera laptop/webcam/USB camera dengan dropdown pemilihan perangkat kamera dan tombol bidik.
-- **Upload Foto**: Opsi alternatif upload file gambar foto tamu.
-- **Tanda Tangan Digital**: Fitur tanda tangan digital interaktif berbasis HTML5 Canvas (*Signature Pad*).
-- **Pencatatan Peserta Rombongan**: Pendataan detail nama, jabatan, instansi, dan nomor handphone setiap peserta.
+### 4. 📷 Pemindai Multi-Perangkat (Check-In & Check-Out)
+- **Check-In Kedatangan (`scan_qr.php`)**: Memindai QR E-Ticket via Kamera Webcam/HP atau Barcode Scanner USB fisik, mencatat status `sedang berkunjung`, dan menerbitkan Kartu Tamu Sementara.
+- **Check-Out Kepulangan (`scan_qr_checkout.php`)**: Memindai QR Kartu Tamu saat pulang, otomatis mencatat `waktu_checkout = NOW()`, mengubah status menjadi `selesai`, dan menolak check-out ganda.
 
-### 5. 🖨️ Penerbitan Dokumen Resmi Ber-KOP DPRD
+### 5. ✍️ Buku Tamu Digital & Live Camera Photo Capture
+- **Live Camera Capture**: Mengambil foto wajah tamu langsung dari kamera laptop/webcam/USB camera dengan dropdown pemilihan device kamera dan tombol snapshot.
+- **Upload File Foto**: Opsi alternatif unggah file foto dari galeri/komputer.
+- **Tanda Tangan Digital**: Tanda tangan langsung pada layar menggunakan HTML5 Canvas (*Signature Pad*).
+- **Proteksi Anti Double-Guest**: Mencegah penginputan nama peserta yang sama dua kali dalam 1 kunjungan.
+
+### 6. 🖨️ Cetak Dokumen Resmi Ber-KOP DPRD Kota Banjarmasin
 - **Cetak E-Ticket Tamu** (`cetak_tiket.php`)
 - **Cetak Kartu Tamu Sementara** (`kartu_tamu.php`)
-- **Cetak Lembar Daftar Hadir Resmi** (`cetak_absensi.php`) lengkap dengan foto peserta dan tanda tangan asli.
+- **Cetak Lembar Disposisi Ber-TTE** (`admin/cetak_disposisi_tte.php`)
+- **Cetak Lembar Daftar Hadir Tamu** (`admin/cetak_absensi.php`) lengkap dengan foto dan tanda tangan asli peserta.
 
 ---
 
-## 🛠️ Arsitektur & Teknologi
+## 🧭 Alur Kerja Sistem (Workflow Diagram)
 
-| Komponen | Teknologi yang Digunakan |
+```mermaid
+graph TD
+    A[1. Tamu Mengisi Form Pengajuan Online] -->|Kode Booking Terbit| B[2. Status: Pending / Menunggu Verifikasi]
+    B --> C[3. Pimpinan: Disposisi & Cek Kapasitas Ruangan]
+    C -->|Ditolak| C1[Status: Batal / Tiket Tidak Terbit]
+    C -->|Disetujui| D[4. Status: Dijadwalkan - E-Ticket QR Signature Aktif]
+    D --> E[5. Tamu Tiba di Gedung DPRD]
+    E --> F[6. Petugas: Scan QR Check-In]
+    F -->|Validasi Jadwal & 1x Pakai Berhasil| G[7. Cetak Kartu Tamu Sementara]
+    G --> H[8. Buku Tamu: Input Peserta + TTD Canvas + Live Foto Tamu]
+    H --> I[9. Tamu Melaksanakan Agenda Kunjungan]
+    I --> J[10. Selesai: Scan QR Check-Out saat Kepulangan]
+    J -->|Status: Selesai| K[11. Cetak Laporan & Daftar Hadir Resmi Lengkap]
+```
+
+---
+
+## 🛠️ Tech Stack & Library
+
+| Komponen | Spesifikasi & Library |
 | :--- | :--- |
-| **Backend** | PHP 8.x (Native / Procedural) |
-| **Database** | MySQL / MariaDB |
-| **Frontend** | HTML5, CSS3, JavaScript (ES6), Bootstrap 5 |
-| **Template UI** | Able Pro Responsive Dashboard Template & Tabler Icons |
-| **Library Scanner** | `html5-qrcode` (Webcam & Hardware QR Scanning) |
-| **Library Signature** | HTML5 Canvas Touch & Mouse Draw API |
-| **Environment** | Laragon / XAMPP / WampServer |
+| **Backend Engine** | PHP 8.x Native (Procedural with MySQLi Prepared Security) |
+| **Database** | MySQL / MariaDB (Relational with Foreign Keys & Cascading) |
+| **Frontend UI** | HTML5, CSS3, JavaScript ES6, Bootstrap 5.3, Tabler Icons |
+| **Admin Template** | Able Pro Modern Responsive Admin Dashboard |
+| **QR Engine** | QRServer API + `html5-qrcode` Library (Autofocus Webcam & USB Scanner) |
+| **Canvas Signature** | HTML5 Canvas Touch & Mouse Draw API |
+| **Cryptography** | `HMAC-SHA256` Digital Signature Verification |
 
 ---
 
-## 🗄️ Struktur Database (`db_smart_guest.sql`)
+## 🗄️ Skema Database Utama (`db_smart_guest.sql`)
 
-- **`kunjungan`**: Menyimpan data pengajuan permohonan kunjungan, jadwal, ruangan, penanggung jawab, status permohonan, status kehadiran, file surat, token QR, dan timestamp check-in/check-out.
-- **`buku_tamu`**: Menyimpan data peserta rombongan, tanda tangan digital, file `foto_tamu`, dan waktu hadir.
-- **`ruangan`**: Master data ruangan rapat/audiensi DPRD.
-- **`penanggung_jawab`**: Master data pejabat / penerima tamu yang ditugaskan.
+- **`kunjungan`**: Data induk pengajuan kunjungan, tanggal, jam, peserta, materi, file surat, penugasan ruangan, penanggung jawab, status permohonan, status kehadiran, QR payload token, serta timestamp check-in/check-out.
+- **`buku_tamu`**: Data peserta rombongan, tanda tangan digital, file `foto_tamu`, dan waktu hadir.
+- **`ruangan`**: Master data ruangan rapat/audiensi DPRD beserta kapasitas maksimal dan lokasi lantai.
+- **`penanggung_jawab`**: Master data pejabat/staf penerima tamu (NIP, Jabatan, Pangkat/Golongan, file TTD).
+- **`jadwal_pejabat`**: Jadwal ketersediaan penanggung jawab (hari, jam mulai, jam selesai).
 - **`kategori_kunjungan`**: Master kategori (Audiensi, Studi Tiru, Kunjungan Kerja, Konsultasi).
-- **`admin`**: Kredensial akun login staf pengelola.
+- **`admin`**: Kredensial akun pengelola sistem.
 
 ---
 
 ## 🚀 Panduan Instalasi & Penggunaan Lokal
 
 ### 1. Prasyarat
-- Web Server Lokal (Disarankan menggunakan **Laragon** atau **XAMPP** dengan PHP $\ge$ 7.4 / 8.x).
+- Web Server Lokal (**Laragon** disarankan, atau **XAMPP** dengan PHP $\ge$ 7.4 / 8.x).
 - Web Browser modern (Google Chrome, Microsoft Edge, atau Mozilla Firefox).
-- Akses kamera webcam (untuk fitur scan dan capture foto tamu).
+- Kamera Webcam / USB Camera aktif (untuk fitur scan dan capture foto tamu).
 
 ### 2. Langkah Instalasi
-1. Clone repositori ini ke direktori web root Anda:
+1. Clone repositori ini ke folder root web server Anda:
    ```bash
-   # Jika menggunakan Laragon:
+   # Laragon
    cd C:/laragon/www/
    git clone https://github.com/eternalsugarzy/sistem-kunjungan-dprd.git
    
-   # Atau jika menggunakan XAMPP:
+   # XAMPP
    cd C:/xampp/htdocs/
    git clone https://github.com/eternalsugarzy/sistem-kunjungan-dprd.git
    ```
@@ -85,18 +121,18 @@ Aplikasi berbasis web untuk digitalisasi tata kelola penerimaan permohonan kunju
    - Nama Database: `db_smart_guest`
 
 3. Import file database:
-   - Import file `db_smart_guest.sql` yang ada di root direktori proyek ke dalam database `db_smart_guest`.
+   - Import file `db_smart_guest.sql` yang ada di root direktori proyek.
 
-4. Sesuaikan konfigurasi database di file `koneksi.php` (jika diperlukan):
+4. Konfigurasi koneksi database di file `koneksi.php`:
    ```php
    $host = "localhost";
    $user = "root";
    $pass = "";
    $db   = "db_smart_guest";
-   $qr_secret_key = "DPRD_SECRET_KEY_2026"; // Kunci rahasia signature QR
+   $qr_secret_key = "DPRD_SECRET_KEY_2026"; // Secret key signature QR
    ```
 
-5. Pastikan folder upload memiliki izin tulis:
+5. Pastikan folder penyimpanan asset dapat ditulis (*writable*):
    - `uploads/`
    - `uploads/qr/`
    - `uploads/ttd/`
@@ -104,34 +140,20 @@ Aplikasi berbasis web untuk digitalisasi tata kelola penerimaan permohonan kunju
 
 ---
 
-## 🔑 Kredensial Login Default Admin
+## 🔑 Kredensial Login Default
 
-- **URL Admin**: `http://localhost/sistem-kunjungan-dprd/admin/login.php`
-- **Username**: `admin`
-- **Password**: `admin`
-
----
-
-## 🧭 Alur Kerja Sistem (Workflow)
-
-```mermaid
-graph TD
-    A[Tamu: Isi Form Pengajuan] -->|Kode Booking Terbit| B[Admin: Verifikasi & Penjadwalan]
-    B -->|Status: Dijadwalkan| C[Penerbitan E-Ticket QR Signature]
-    C -->|Tamu Tiba di DPRD| D[Admin: Scan QR Check-In]
-    D -->|Validasi Jadwal & 1x Pakai Sukses| E[Cetak Kartu Tamu Sementara]
-    E --> F[Buku Tamu: Input Data + TTD + Capture Foto Tamu]
-    F --> G[Tamu Selesai Berkunjung]
-    G --> H[Admin: Scan QR Check-Out]
-    H -->|Status: Selesai| I[Cetak Dokumen Daftar Hadir Absensi]
-```
+- **URL Portal Publik**: `http://localhost/sistem-kunjungan-dprd/`
+- **URL Admin Panel**: `http://localhost/sistem-kunjungan-dprd/admin/login.php`
+- **Username Admin**: `admin`
+- **Password Admin**: `admin`
+- **Passphrase TTE Pimpinan**: `pimpinan123`
 
 ---
 
-## 👤 Pengembang
-- **Nama**: Muhammad / EternalSugarzy
-- **Instansi**: Sekretariat DPRD Kota Banjarmasin / Tugas Akhir Informatika
+## 👤 Pengembang Proyek
+- **Pengembang**: Muhammad / EternalSugarzy
+- **Institusi**: Sekretariat DPRD Kota Banjarmasin / Tugas Akhir Informatika
 - **Tahun**: 2026
 
 ---
-*Dibuat untuk memenuhi standar pelayanan publik berbasis digital modern.*
+*Dikembangkan dengan standar kualitas rekayasa perangkat lunak, keamanan data terenkripsi, dan kepatuhan revisi akademik.*

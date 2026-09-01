@@ -52,7 +52,8 @@ if (isset($_POST['tambah'])) {
     }
     
     // Validasi Anti Duplikat NIP / Nama PJ
-    $cek_pj = mysqli_query($koneksi, "SELECT id_pj FROM penanggung_jawab WHERE (!empty('$nip') AND nip = '$nip') OR LOWER(nama_pj) = LOWER('$nama')");
+    $where_nip = (!empty($nip)) ? "nip = '$nip' OR " : "";
+    $cek_pj = mysqli_query($koneksi, "SELECT id_pj FROM penanggung_jawab WHERE {$where_nip} LOWER(nama_pj) = LOWER('$nama')");
     if (mysqli_num_rows($cek_pj) > 0) {
         if (!empty($nama_file_ttd) && file_exists($target_dir . $nama_file_ttd)) unlink($target_dir . $nama_file_ttd);
         echo "<script>alert('Gagal! Penanggung Jawab dengan Nama atau NIP tersebut sudah terdaftar.'); window.location='master_pj.php';</script>";
@@ -75,7 +76,8 @@ if (isset($_POST['edit'])) {
     $hp      = mysqli_real_escape_string($koneksi, $_POST['no_hp']);
     
     // Validasi Anti Duplikat NIP / Nama PJ pada record lain
-    $cek_pj = mysqli_query($koneksi, "SELECT id_pj FROM penanggung_jawab WHERE ((!empty('$nip') AND nip = '$nip') OR LOWER(nama_pj) = LOWER('$nama')) AND id_pj != '$id'");
+    $where_nip = (!empty($nip)) ? "(nip = '$nip' OR LOWER(nama_pj) = LOWER('$nama'))" : "LOWER(nama_pj) = LOWER('$nama')";
+    $cek_pj = mysqli_query($koneksi, "SELECT id_pj FROM penanggung_jawab WHERE {$where_nip} AND id_pj != '$id'");
     if (mysqli_num_rows($cek_pj) > 0) {
         echo "<script>alert('Gagal! Penanggung Jawab dengan Nama atau NIP tersebut sudah digunakan pada data lain.'); window.location='master_pj.php';</script>";
     } else {
