@@ -116,6 +116,12 @@ if (isset($koneksi)) {
             <span class="pc-mtext">Cetak Laporan</span>
           </a>
         </li>
+        <li class="pc-item <?= ($page == 'panduan') ? 'active' : '' ?>">
+          <a href="panduan_testing.php" class="pc-link">
+            <span class="pc-micon"><i class="ti ti-book-2 text-primary"></i></span>
+            <span class="pc-mtext text-primary font-weight-bold">Panduan Pengujian (PDF)</span>
+          </a>
+        </li>
 
       </ul>
     </div>
